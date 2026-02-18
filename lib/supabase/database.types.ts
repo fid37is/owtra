@@ -163,6 +163,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          ai_analysis: string | null
           company_size: string | null
           cons: Json | null
           created_at: string | null
@@ -173,6 +174,7 @@ export type Database = {
           headquarters: string | null
           id: string
           industry: string | null
+          key_values: string[] | null
           last_researched_at: string | null
           linkedin_url: string | null
           logo_url: string | null
@@ -184,6 +186,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          ai_analysis?: string | null
           company_size?: string | null
           cons?: Json | null
           created_at?: string | null
@@ -194,6 +197,7 @@ export type Database = {
           headquarters?: string | null
           id?: string
           industry?: string | null
+          key_values?: string[] | null
           last_researched_at?: string | null
           linkedin_url?: string | null
           logo_url?: string | null
@@ -205,6 +209,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          ai_analysis?: string | null
           company_size?: string | null
           cons?: Json | null
           created_at?: string | null
@@ -215,6 +220,7 @@ export type Database = {
           headquarters?: string | null
           id?: string
           industry?: string | null
+          key_values?: string[] | null
           last_researched_at?: string | null
           linkedin_url?: string | null
           logo_url?: string | null
@@ -227,68 +233,322 @@ export type Database = {
         }
         Relationships: []
       }
+      deletion_log: {
+        Row: {
+          application_id: string
+          created_at: string
+          deleted_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          deleted_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          deleted_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          dodo_payment_id: string | null
+          id: string
+          invoice_pdf: string | null
+          period_end: string
+          period_start: string
+          status: string
+          stripe_invoice_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          dodo_payment_id?: string | null
+          id?: string
+          invoice_pdf?: string | null
+          period_end: string
+          period_start: string
+          status: string
+          stripe_invoice_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          dodo_payment_id?: string | null
+          id?: string
+          invoice_pdf?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          stripe_invoice_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_methods: {
+        Row: {
+          brand: string
+          created_at: string | null
+          exp_month: number
+          exp_year: number
+          id: string
+          is_default: boolean | null
+          last4: string
+          stripe_payment_method_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          brand: string
+          created_at?: string | null
+          exp_month: number
+          exp_year: number
+          id?: string
+          is_default?: boolean | null
+          last4: string
+          stripe_payment_method_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          brand?: string
+          created_at?: string | null
+          exp_month?: number
+          exp_year?: number
+          id?: string
+          is_default?: boolean | null
+          last4?: string
+          stripe_payment_method_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          account_status: string | null
           career_goals: string | null
           created_at: string | null
+          current_job_title: string | null
           deal_breakers: Json | null
+          deletion_scheduled_at: string | null
           email: string | null
+          experience_level: string | null
           full_name: string | null
           id: string
+          is_admin: boolean | null
           long_term_goal: string | null
           management_style_preference: string | null
           onboarding_completed: boolean | null
           preferred_company_size: string[] | null
           preferred_industries: string[] | null
           profile_completed: boolean | null
+          resumes: Json | null
           short_term_goal: string | null
+          skills: string[] | null
+          subscription_tier: string | null
           top_values: Json | null
           updated_at: string | null
           work_location_preference: string | null
         }
         Insert: {
+          account_status?: string | null
           career_goals?: string | null
           created_at?: string | null
+          current_job_title?: string | null
           deal_breakers?: Json | null
+          deletion_scheduled_at?: string | null
           email?: string | null
+          experience_level?: string | null
           full_name?: string | null
           id: string
+          is_admin?: boolean | null
           long_term_goal?: string | null
           management_style_preference?: string | null
           onboarding_completed?: boolean | null
           preferred_company_size?: string[] | null
           preferred_industries?: string[] | null
           profile_completed?: boolean | null
+          resumes?: Json | null
           short_term_goal?: string | null
+          skills?: string[] | null
+          subscription_tier?: string | null
           top_values?: Json | null
           updated_at?: string | null
           work_location_preference?: string | null
         }
         Update: {
+          account_status?: string | null
           career_goals?: string | null
           created_at?: string | null
+          current_job_title?: string | null
           deal_breakers?: Json | null
+          deletion_scheduled_at?: string | null
           email?: string | null
+          experience_level?: string | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
           long_term_goal?: string | null
           management_style_preference?: string | null
           onboarding_completed?: boolean | null
           preferred_company_size?: string[] | null
           preferred_industries?: string[] | null
           profile_completed?: boolean | null
+          resumes?: Json | null
           short_term_goal?: string | null
+          skills?: string[] | null
+          subscription_tier?: string | null
           top_values?: Json | null
           updated_at?: string | null
           work_location_preference?: string | null
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          discount_percentage: number | null
+          display_order: number | null
+          dodo_product_id: string
+          features: Json | null
+          id: string
+          interval: string
+          is_active: boolean | null
+          name: string
+          plan_id: string
+          price_cents: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          display_order?: number | null
+          dodo_product_id: string
+          features?: Json | null
+          id?: string
+          interval: string
+          is_active?: boolean | null
+          name: string
+          plan_id: string
+          price_cents: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          display_order?: number | null
+          dodo_product_id?: string
+          features?: Json | null
+          id?: string
+          interval?: string
+          is_active?: boolean | null
+          name?: string
+          plan_id?: string
+          price_cents?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          billing_cycle: string | null
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          dodo_customer_id: string | null
+          dodo_subscription_id: string | null
+          id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_cycle?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          dodo_customer_id?: string | null
+          dodo_subscription_id?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          dodo_customer_id?: string | null
+          dodo_subscription_id?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      email_exists: { Args: { p_email: string }; Returns: boolean }
       get_or_create_company: {
         Args: { p_name: string; p_website?: string }
         Returns: string

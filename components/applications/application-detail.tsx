@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Database } from '@/lib/supabase/dodo-types'
+import { Database } from '@/lib/supabase/database.types'
 import { Button } from '@/components/ui/button'
 import {
   ArrowLeft,

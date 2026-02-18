@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { dodoClient } from '@/lib/dodo/config'
 import { cancelSubscriptionInDb } from '@/lib/dodo/db'
-import type { CancelSubscriptionRequest } from '@/lib/dodo/dodo-types'
+import type { CancelSubscriptionRequest } from '@/lib/dodo/types'
 
 export async function POST(request: NextRequest) {
   try {

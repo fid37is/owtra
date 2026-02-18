@@ -4,7 +4,7 @@
  */
 
 import DodoPayments from 'dodopayments'
-import type { DodoPaymentsConfig } from './dodo-types'
+import type { DodoPaymentsConfig } from './types'
 
 // Environment Configuration
 export const dodoConfig: DodoPaymentsConfig = {

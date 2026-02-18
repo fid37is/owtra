@@ -12,7 +12,7 @@ import type {
   CancelSubscriptionRequest,
   CreatePortalSessionRequest,
   CreatePortalSessionResponse,
-} from '@/lib/dodo/dodo-types'
+} from '@/lib/dodo/types'
 
 /**
  * Hook to create checkout session

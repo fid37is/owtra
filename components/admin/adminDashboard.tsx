@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import AIStatus from './ai-status'
 import { toast } from 'sonner'
-import type { Profile, Subscription, Invoice } from '@/lib/supabase/dodo-types'
+import type { Profile } from '@/lib/supabase/dodo-types'
 
 interface DashboardStats {
     totalUsers: number

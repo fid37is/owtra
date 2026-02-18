@@ -384,7 +384,7 @@ export default function PreferencesTab({ profile, user }: PreferencesTabProps) {
             
             {/* Uploaded Resumes Grid */}
             {resumes.length > 0 && (
-              <div className="grid md:grid-cols-3 gap-4 mb-4">
+              <div className="grid md:grid-cols- gap-4 mb-4">
                 {resumes.map((resume, index) => (
                   <div key={index} className="relative group">
                     <div className="relative bg-gradient-to-br from-muted/30 to-muted/20 rounded-xl border-2 border-border hover:border-primary/40 transition-all overflow-hidden">

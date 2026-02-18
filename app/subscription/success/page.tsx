@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle, Loader2, Crown, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
-export default function SubscriptionSuccessPage() {
+function SubscriptionSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [syncing, setSyncing] = useState(true)
@@ -26,10 +26,8 @@ export default function SubscriptionSuccessPage() {
           return
         }
 
-        // Wait 2 seconds for webhook to process
         await new Promise(resolve => setTimeout(resolve, 2000))
 
-        // Sync subscription
         const response = await fetch('/api/billing/sync-subscription', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -66,9 +64,9 @@ export default function SubscriptionSuccessPage() {
             <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-12 h-12 text-green-600" />
             </div>
-            
+
             <h1 className="text-3xl font-bold mb-3">Welcome to Premium!</h1>
-            
+
             <p className="text-lg text-muted-foreground mb-8">
               Your subscription is now active. Enjoy unlimited access to all premium features.
             </p>
@@ -78,7 +76,7 @@ export default function SubscriptionSuccessPage() {
                 <Crown className="w-6 h-6 text-primary" />
                 <h3 className="font-semibold text-lg">What's included:</h3>
               </div>
-              
+
               <ul className="space-y-3">
                 <li className="flex items-center gap-2 text-sm">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -123,5 +121,17 @@ export default function SubscriptionSuccessPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function SubscriptionSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <SubscriptionSuccessContent />
+    </Suspense>
   )
 }

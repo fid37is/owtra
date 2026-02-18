@@ -1,5 +1,7 @@
 // lib/supabase/dodo-types.ts
-// Dodo-specific database types
+// Dodo-specific types (billing/payments) + app-level types
+
+import { Tables } from "./database.types"
 
 export type DodoSubscription = {
   id: string
@@ -30,4 +32,36 @@ export type DodoInvoice = {
   period_start: string
   period_end: string
   created_at: string | null
+}
+
+// Aliases for convenience
+export type Subscription = DodoSubscription
+export type Invoice = DodoInvoice
+
+// Profile - Omit Json-typed fields we want to override with proper types
+export type Profile = Omit<Tables<'profiles'>, 'resumes'> & {
+  is_admin: boolean | null
+  resumes: { url: string; fileName: string; isPrimary: boolean }[] | null
+}
+
+// Interview prep types (app-level, not a DB table)
+export type InterviewQuestion = {
+  id: string
+  category: string
+  question: string
+  tips: string[]
+  sample_answer?: string
+}
+
+export type InterviewPrep = {
+  questions: InterviewQuestion[]
+  key_topics: string[]
+  preparation_tips: string[]
+  company_insights: string[]
+  generated_at: string
+}
+
+// Application extends DB type with optional company join
+export type Application = Tables<'applications'> & {
+  company?: Tables<'companies'> | null
 }

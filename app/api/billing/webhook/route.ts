@@ -12,7 +12,7 @@ import {
   getSubscriptionByDodoId,
   cancelSubscriptionInDb,
 } from '@/lib/dodo/db'
-import type { DodoWebhookPayload, DodoWebhookHeaders } from '@/lib/dodo/dodo-types'
+import type { DodoWebhookPayload, DodoWebhookHeaders } from '@/lib/dodo/types'
 import { createClient } from '@/lib/supabase/client'
 
 const webhook = new Webhook(dodoConfig.webhookSecret)
@@ -41,13 +41,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse payload
-    const payload: DodoWebhookPayload = JSON.parse(rawBody)
+    const payload: any = JSON.parse(rawBody)
+    
+    // Dodo sends "type" not "event_type"
+    const eventType = payload.type || payload.event_type
 
-    console.log('Received webhook event:', payload.event_type)
+    console.log('Received webhook event:', eventType)
+    console.log('Full payload:', JSON.stringify(payload, null, 2))
 
     // Handle different event types
-    switch (payload.event_type) {
+    switch (eventType) {
       case 'subscription.created':
+      case 'subscription.active':
         await handleSubscriptionCreated(payload)
         break
 
@@ -72,7 +77,7 @@ export async function POST(request: NextRequest) {
         break
 
       default:
-        console.log('Unhandled webhook event type:', payload.event_type)
+        console.log('Unhandled webhook event type:', eventType)
     }
 
     return NextResponse.json({ received: true })
@@ -88,23 +93,25 @@ export async function POST(request: NextRequest) {
 /**
  * Handle subscription.created event
  */
-async function handleSubscriptionCreated(payload: DodoWebhookPayload) {
-  const subscription = payload.data.subscription
+async function handleSubscriptionCreated(payload: any) {
+  // Dodo payload structure has subscription data directly in "data" field
+  const subscription = payload.data
+  
   if (!subscription) {
-    console.log('❌ No subscription in payload')
+    console.log('❌ No subscription data in payload')
     return
   }
 
-  console.log('Subscription created:', subscription.subscription_id)
-  console.log('Customer email:', subscription.customer.email)
-  console.log('Metadata:', JSON.stringify(subscription.metadata))
+  console.log('✅ Subscription active:', subscription.subscription_id)
+  console.log('📧 Customer email:', subscription.customer?.email)
+  console.log('📦 Metadata:', JSON.stringify(subscription.metadata))
 
   // Try to get user ID from metadata first
   let userId = subscription.metadata?.user_id as string
   
   // If not in metadata, look up user by email
-  if (!userId) {
-    console.log('No user_id in metadata, looking up by email...')
+  if (!userId && subscription.customer?.email) {
+    console.log('⚠️ No user_id in metadata, looking up by email...')
     
     const supabase = createClient()
     const { data: profile } = await supabase
@@ -122,8 +129,27 @@ async function handleSubscriptionCreated(payload: DodoWebhookPayload) {
     return
   }
 
+  // Convert Dodo payload to DodoSubscriptionStatus format
+  const dodoSub = {
+    subscription_id: subscription.subscription_id,
+    product_id: subscription.product_id,
+    customer: subscription.customer,
+    status: subscription.status,
+    recurring_pre_tax_amount: subscription.recurring_pre_tax_amount,
+    currency: subscription.currency,
+    payment_frequency_count: subscription.payment_frequency_count,
+    payment_frequency_interval: subscription.payment_frequency_interval,
+    next_billing_date: subscription.next_billing_date,
+    previous_billing_date: subscription.previous_billing_date,
+    created_at: subscription.created_at,
+    cancelled_at: subscription.cancelled_at,
+    expires_at: subscription.expires_at,
+    cancel_at_next_billing_date: subscription.cancel_at_next_billing_date,
+    metadata: subscription.metadata
+  }
+
   console.log('💾 Upserting subscription for user:', userId)
-  const result = await upsertSubscription(userId, subscription)
+  const result = await upsertSubscription(userId, dodoSub)
   console.log('💾 Result:', result)
 }
 

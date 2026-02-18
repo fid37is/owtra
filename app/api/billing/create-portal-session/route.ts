@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { dodoClient } from '@/lib/dodo/config'
-import type { CreatePortalSessionRequest } from '@/lib/dodo/dodo-types'
+import type { CreatePortalSessionRequest } from '@/lib/dodo/types'
 
 export async function POST(request: NextRequest) {
   try {

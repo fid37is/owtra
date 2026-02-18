@@ -1,8 +1,10 @@
+// app/dashboard/profile/page.tsx
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ProfileSettings from '@/components/profile/profile-settings'
 import { CreditCard } from 'lucide-react'
 import Link from 'next/link'
+import type { Profile } from '@/lib/supabase/dodo-types'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -15,12 +17,13 @@ export default async function ProfilePage() {
     redirect('/')
   }
 
-  // Fetch profile
-  const { data: profile } = await supabase
+  const { data: rawProfile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
+
+  const profile = rawProfile as unknown as Profile | null
 
   return (
     <div>

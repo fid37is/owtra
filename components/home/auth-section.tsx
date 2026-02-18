@@ -64,7 +64,7 @@ export default function AuthSection() {
           .from('profiles')
           .select('onboarding_completed, account_status')
           .eq('id', user.id)
-          .single()
+          .single<{ onboarding_completed: boolean | null; account_status: string | null }>()
 
         if (profileError) {
           console.error('Error fetching profile:', profileError)

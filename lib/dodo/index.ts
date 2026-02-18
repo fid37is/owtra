@@ -4,7 +4,7 @@
  */
 
 // Types
-export * from './dodo-types'
+export * from '../supabase/dodo-types'
 
 // Configuration
 export {

@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { dodoClient } from '@/lib/dodo/config'
 import { upsertSubscription } from '@/lib/dodo/db'
 import type { DodoSubscription } from '@/lib/supabase/dodo-types'
-import type { DodoSubscriptionStatus } from '@/lib/dodo/dodo-types'
+import type { DodoSubscriptionStatus } from '@/lib/dodo/types'
 
 export async function POST(request: NextRequest) {
   try {

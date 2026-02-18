@@ -5,7 +5,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { DodoSubscription } from '@/lib/supabase/dodo-types'
-import type { DodoSubscriptionStatus, DodoPayment } from './dodo-types'
+import type { DodoSubscriptionStatus, DodoPayment } from './types'
 
 /**
  * Create or update subscription in database
