@@ -1,13 +1,18 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+
 import { ToastProvider } from '@/components/providers/toast-provider'
 import { ThemeProvider } from '@/components/providers/theme-provider'
+import { ServiceWorkerProvider } from '@/components/providers/sw-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_APP_URL || 'https://owtra.xyz'
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://owtra.xyz'), // ← change to your real domain
+  metadataBase: new URL(baseUrl),
 
   title: {
     default: 'Owtra – Job Application Tracker',
@@ -28,7 +33,6 @@ export const metadata: Metadata = {
   ],
 
   authors: [{ name: 'Owtra Team' }],
-
   creator: 'Owtra',
   publisher: 'Owtra',
 
@@ -37,9 +41,7 @@ export const metadata: Metadata = {
       { url: '/icons/icon-32x32.png', sizes: '32x32' },
       { url: '/icons/icon-16x16.png', sizes: '16x16' },
     ],
-    apple: [
-      { url: '/icons/icon-180x180.png', sizes: '180x180' },
-    ],
+    apple: [{ url: '/icons/icon-180x180.png', sizes: '180x180' }],
   },
 
   manifest: '/manifest.json',
@@ -48,11 +50,11 @@ export const metadata: Metadata = {
     title: 'Owtra – Smarter Tracking. Sharper Insights.',
     description:
       'AI-powered job application tracking built to help you land the perfect role.',
-    url: 'https://owtra.xyz', // change
+    url: baseUrl,
     siteName: 'Owtra',
     images: [
       {
-        url: '/og/og-image.png', // you must create this
+        url: '/og/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Owtra Job Application Tracker',
@@ -68,11 +70,6 @@ export const metadata: Metadata = {
     description:
       'Track applications. Analyze performance. Get AI-powered company matching.',
     images: ['/og/og-image.png'],
-  },
-
-  robots: {
-    index: true,
-    follow: true,
   },
 }
 
@@ -92,6 +89,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider>
+          <ServiceWorkerProvider />
           {children}
           <ToastProvider />
         </ThemeProvider>
