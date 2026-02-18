@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getGeminiClient } from '@/lib/ai/providers'
-import { InterviewPrep, InterviewQuestion } from '@/lib/supabase/types'
+import { InterviewPrep, InterviewQuestion } from '@/lib/supabase/dodo-types'
 
 export async function POST(request: Request) {
   try {

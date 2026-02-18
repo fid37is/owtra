@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, CheckCircle, Upload, X, FileText, Briefcase, Award, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import type { Profile } from '@/lib/supabase/types'
+import type { Profile } from '@/lib/supabase/dodo-types'
 import type { User } from '@supabase/supabase-js'
 
 interface PreferencesTabProps {

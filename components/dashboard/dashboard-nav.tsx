@@ -106,7 +106,7 @@ export default function DashboardNav({ user }: DashboardNavProps) {
               <div className="w-10 h-10 relative">
                 {theme === 'dark' ? (
                   <Image
-                    src="/icons/owtra_dark_64.png"
+                    src="/owtra_logo2.png"
                     alt="Owtra Logo"
                     width={40}
                     height={40}
@@ -116,7 +116,7 @@ export default function DashboardNav({ user }: DashboardNavProps) {
                   />
                 ) : (
                   <Image
-                    src="/icons/owtra_light_64.png"
+                    src="/owtra_logo.png"
                     alt="Owtra Logo"
                     width={40}
                     height={40}

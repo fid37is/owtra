@@ -24,7 +24,7 @@ export default function HomeNav() {
   }
 
   return (
-    <nav className="bg-background/95 border-b border-border sticky top-0 z-50 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+    <nav className="border-b border-border sticky top-0 z-50 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -32,7 +32,7 @@ export default function HomeNav() {
             <div className="w-14 h-14 sm:w-16 sm:h-16 relative">
               {theme === 'dark' ? (
                 <Image
-                  src="/icons/owtra_dark_64.png"
+                  src="/owtra_logo2.png"
                   alt="Owtra Logo"
                   width={64}
                   height={64}
@@ -42,7 +42,7 @@ export default function HomeNav() {
                 />
               ) : (
                 <Image
-                  src="/icons/owtra_light_64.png"
+                  src="/owtra_logo.png"
                   alt="Owtra Logo"
                   width={64}
                   height={64}

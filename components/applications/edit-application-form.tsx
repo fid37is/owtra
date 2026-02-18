@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2, ArrowLeft, Building2, MapPin, Briefcase, Link as LinkIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Application } from '@/lib/supabase/types'
+import type { Application } from '@/lib/supabase/dodo-types'
 import Link from 'next/link'
 
 interface EditApplicationFormProps {

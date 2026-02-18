@@ -1,6 +1,6 @@
 'use client'
 
-import { Application } from '@/lib/supabase/types'
+import { Application } from '@/lib/supabase/dodo-types'
 import { TrendingUp, TrendingDown, Target, Clock, Award, Sparkles, X, Loader2 } from 'lucide-react'
 import { useState, useEffect, JSX } from 'react'
 import { Button } from '@/components/ui/button'

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Application } from '@/lib/supabase/types'
+import { Application } from '@/lib/supabase/dodo-types'
 import { Input } from '@/components/ui/input'
 import {
   Select,

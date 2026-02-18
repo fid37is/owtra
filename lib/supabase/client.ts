@@ -4,7 +4,7 @@
 // Client-side Supabase client for use in Client Components
 
 import { createBrowserClient } from '@supabase/ssr'
-import type { Database } from './types'
+import type { Database } from './dodo-types'
 
 export function createClient() {
   return createBrowserClient<Database>(

@@ -5,13 +5,18 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { CreditCard, AlertCircle, Check, Zap, TrendingUp, Calendar, Download, Crown, Loader2, ArrowRight, Settings, ArrowLeft, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
-import { syncUserSubscription } from '@/lib/utils'
 import type { User } from '@supabase/supabase-js'
-import type { Database } from '@/lib/supabase/types'
+import type { DodoSubscription, DodoInvoice } from '@/lib/supabase/dodo-types'
+import {
+  useCreateCheckout,
+  useCancelSubscription,
+  useReactivateSubscription,
+  useCustomerPortal,
+  useSubscription,
+} from '@/lib/dodo/hooks'
 
-type Subscription = Database['public']['Tables']['subscriptions']['Row']
-type PaymentMethod = Database['public']['Tables']['payment_methods']['Row']
-type Invoice = Database['public']['Tables']['invoices']['Row']
+type Subscription = DodoSubscription
+type Invoice = DodoInvoice
 
 interface UsageStats {
   applications_count: number
@@ -19,21 +24,67 @@ interface UsageStats {
   ai_analyses_used: number
 }
 
-export default function BillingPage() {
+interface PricingData {
+  plans: {
+    monthly: {
+      id: string
+      name: string
+      description: string
+      price: number
+      displayPrice: number
+      interval: string
+      features: string[]
+      product_id: string
+    }
+    yearly: {
+      id: string
+      name: string
+      description: string
+      price: number
+      displayPrice: number
+      interval: string
+      features: string[]
+      product_id: string
+      discountPercentage: number
+    }
+  }
+  pricing: {
+    monthly: {
+      price: number
+      displayPrice: number
+      formatted: string
+    }
+    yearly: {
+      price: number
+      displayPrice: number
+      formatted: string
+      monthlyEquivalent: number
+      savings: number
+      savingsFormatted: string
+      discountPercentage: number
+    }
+  }
+}
+
+export default function SubscriptionPage() {
   const router = useRouter()
   const supabase = createClient()
   
   const [user, setUser] = useState<User | null>(null)
   const [subscription, setSubscription] = useState<Subscription | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [usage, setUsage] = useState<UsageStats | null>(null)
+  const [pricing, setPricing] = useState<PricingData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly' | null>(null)
-  const [isSyncing, setIsSyncing] = useState(false)
+
+  const { createCheckout, loading: checkoutLoading } = useCreateCheckout()
+  const { cancelSubscription, loading: cancelLoading } = useCancelSubscription()
+  const { reactivateSubscription, loading: reactivateLoading } = useReactivateSubscription()
+  const { openPortal, loading: portalLoading } = useCustomerPortal()
+  const { syncSubscription } = useSubscription()
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -47,39 +98,26 @@ export default function BillingPage() {
   useEffect(() => {
     if (user?.id) {
       fetchBillingData()
+      fetchPricing()
     }
   }, [user?.id])
 
-  // Sync subscription after successful upgrade
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const upgradeSuccess = params.get('upgrade') === 'success'
 
-    if (upgradeSuccess && user?.id && !isSyncing) {
-      console.log('🔄 Syncing subscription after successful upgrade...')
-      setIsSyncing(true)
-      
-      // Wait a moment for Stripe webhook to process
+    if (upgradeSuccess && user?.id) {
       const timer = setTimeout(async () => {
-        const synced = await syncUserSubscription(user.id)
-
+        const synced = await syncSubscription(user.id)
         if (synced) {
-          console.log('✅ Subscription synced successfully')
-          // Refresh billing data
           await fetchBillingData()
-          // Clear the URL param
-          window.history.replaceState({}, '', '/billing')
-          toast.success('Subscription updated! Premium features are now active.')
-        } else {
-          toast.error('Failed to sync subscription. Please refresh the page.')
+          window.history.replaceState({}, '', '/subscription')
+          toast.success('Subscription updated!')
         }
-        
-        setIsSyncing(false)
-      }, 2000) // Wait 2 seconds for webhook to process
-
+      }, 2000)
       return () => clearTimeout(timer)
     }
-  }, [user?.id, isSyncing])
+  }, [user?.id])
 
   const fetchBillingData = async () => {
     if (!user?.id) return
@@ -87,44 +125,30 @@ export default function BillingPage() {
     try {
       setLoading(true)
 
-      const { data: subData, error: subError } = await supabase
+      const { data: subData } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
         .single()
 
-      if (subError && subError.code !== 'PGRST116') throw subError
-      setSubscription(subData)
+      setSubscription(subData as Subscription)
 
-      const { data: pmData, error: pmError } = await supabase
-        .from('payment_methods')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_default', true)
-        .single()
-
-      if (pmError && pmError.code !== 'PGRST116') throw pmError
-      setPaymentMethod(pmData)
-
-      const { data: invoiceData, error: invoiceError } = await supabase
+      const { data: invoiceData } = await supabase
         .from('invoices')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10)
 
-      if (invoiceError) throw invoiceError
-      setInvoices(invoiceData || [])
+      setInvoices(invoiceData as Invoice[] || [])
 
-      const { data: appsData, error: appsError } = await supabase
+      const { data: appsData } = await supabase
         .from('applications')
-        .select('id', { count: 'exact' })
+        .select('id')
         .eq('user_id', user.id)
 
-      if (appsError) throw appsError
-
       const applicationsCount = appsData?.length || 0
-      const applicationsLimit = subData?.tier === 'premium' ? 999 : 10
+      const applicationsLimit = subData?.tier === 'premium' ? 200 : 10
       
       setUsage({
         applications_count: applicationsCount,
@@ -132,140 +156,51 @@ export default function BillingPage() {
         ai_analyses_used: applicationsCount
       })
 
-    } catch (error: any) {
-      console.error('Error fetching billing data:', error)
-      toast.error('Failed to load billing information')
+    } catch (error) {
+      console.error('Error:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleUpgradeToPremium = async () => {
-    setActionLoading(true)
+  const fetchPricing = async () => {
     try {
-      // Show user-friendly message instead of error
-      toast.info('Please continue enjoying the free plan for the time being.')
-      setShowUpgradeModal(false)
-      setActionLoading(false)
-      return
-
-      // Determine which price ID to use based on selected plan
-      let priceId = ''
-
-      if (selectedPlan === 'monthly') {
-        priceId = process.env.NEXT_PUBLIC_STRIPE_PREMIUM_MONTHLY_PRICE_ID || ''
-      } else if (selectedPlan === 'yearly') {
-        priceId = process.env.NEXT_PUBLIC_STRIPE_PREMIUM_YEARLY_PRICE_ID || ''
-      }
-
-      if (!priceId) {
-        toast.error('Stripe pricing not configured. Please contact support.')
-        setActionLoading(false)
-        return
-      }
-
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user?.id,
-          email: user?.email,
-          priceId,
-          billingCycle: selectedPlan
-        })
-      })
-
+      const response = await fetch('/api/billing/plans')
       const data = await response.json()
+      setPricing(data)
+    } catch (error) {
+      console.error('Error:', error)
+    }
+  }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session')
-      }
-
-      if (data.url) {
-        window.location.href = data.url
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to start checkout process')
-      console.error(error)
-    } finally {
-      setActionLoading(false)
+  const handleUpgradeToPremium = async () => {
+    if (!user || !selectedPlan) return
+    const checkout = await createCheckout(user.id, user.email!, selectedPlan)
+    if (checkout) {
+      window.location.href = checkout.checkoutUrl
     }
   }
 
   const handleCancelSubscription = async () => {
-    setActionLoading(true)
-    try {
-      const response = await fetch('/api/cancel-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscriptionId: subscription?.stripe_subscription_id
-        })
-      })
-
-      if (response.ok) {
-        toast.success('Subscription will be canceled at the end of the billing period')
-        await fetchBillingData()
-        setShowCancelModal(false)
-      } else {
-        throw new Error('Failed to cancel subscription')
-      }
-    } catch (error: any) {
-      toast.error('Failed to cancel subscription')
-      console.error(error)
-    } finally {
-      setActionLoading(false)
+    if (!subscription?.dodo_subscription_id) return
+    const success = await cancelSubscription(subscription.dodo_subscription_id)
+    if (success) {
+      await fetchBillingData()
+      setShowCancelModal(false)
     }
   }
 
   const handleReactivateSubscription = async () => {
-    setActionLoading(true)
-    try {
-      const response = await fetch('/api/reactivate-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscriptionId: subscription?.stripe_subscription_id
-        })
-      })
-
-      if (response.ok) {
-        toast.success('Subscription reactivated successfully!')
-        await fetchBillingData()
-      } else {
-        throw new Error('Failed to reactivate subscription')
-      }
-    } catch (error: any) {
-      toast.error('Failed to reactivate subscription')
-      console.error(error)
-    } finally {
-      setActionLoading(false)
+    if (!subscription?.dodo_subscription_id) return
+    const success = await reactivateSubscription(subscription.dodo_subscription_id)
+    if (success) {
+      await fetchBillingData()
     }
   }
 
   const handleManagePaymentMethod = async () => {
-    try {
-      const response = await fetch('/api/create-portal-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId: subscription?.stripe_customer_id
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to open payment portal')
-      }
-
-      if (data.url) {
-        window.location.href = data.url
-      }
-    } catch (error: any) {
-      toast.error('Failed to open payment portal')
-      console.error(error)
-    }
+    if (!subscription?.dodo_customer_id) return
+    await openPortal(subscription.dodo_customer_id)
   }
 
   if (loading) {
@@ -282,220 +217,131 @@ export default function BillingPage() {
   return (
     <div className="min-h-screen bg-background py-12 px-4">
       <div className="w-full max-w-7xl mx-auto space-y-8">
-        {/* Header */}
         <div>
           <button
             onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2 text-primary hover:opacity-75 transition-opacity mb-4 font-semibold"
+            className="flex items-center gap-2 text-primary hover:opacity-75 mb-4 font-semibold"
           >
             <ArrowLeft className="w-5 h-5" />
-            Back to Dashboard
+            Back
           </button>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Billing & Subscription</h1>
-          <p className="text-muted-foreground text-lg">
-            Manage your subscription and billing information
-          </p>
+          <h1 className="text-4xl font-bold mb-2">Billing</h1>
         </div>
 
-        {/* Cancellation Warning */}
         {subscription?.cancel_at_period_end && (
-          <div className="bg-secondary/10 border-2 border-secondary rounded-2xl p-6 flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 text-secondary flex-shrink-0 mt-0.5" />
+          <div className="bg-secondary/10 border-2 border-secondary rounded-2xl p-6 flex gap-4">
+            <AlertCircle className="w-6 h-6 text-secondary" />
             <div className="flex-1">
-              <h3 className="font-semibold text-foreground mb-1">
-                Subscription Ending Soon
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                Your premium subscription will end on {subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : 'N/A'}. 
-                You'll lose access to unlimited applications and premium features.
+              <h3 className="font-semibold mb-1">Subscription Ending</h3>
+              <p className="text-sm mb-4">
+                Ends on {subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : 'N/A'}
               </p>
               <button
                 onClick={handleReactivateSubscription}
-                disabled={actionLoading}
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                disabled={reactivateLoading}
+                className="bg-primary text-primary-foreground px-6 py-2 rounded-xl font-semibold"
               >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  'Reactivate Subscription'
-                )}
+                {reactivateLoading ? 'Processing...' : 'Reactivate'}
               </button>
             </div>
           </div>
         )}
 
-        {/* Current Plan */}
-        <div className="bg-card rounded-3xl shadow-lg p-8 border border-border">
+        <div className="bg-card rounded-3xl shadow-lg p-8 border">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                isPremium ? 'bg-primary/10' : 'bg-navy/10'
-              }`}>
-                {isPremium ? (
-                  <Crown className="w-6 h-6 text-primary" />
-                ) : (
-                  <Zap className="w-6 h-6 text-navy" />
-                )}
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isPremium ? 'bg-primary/10' : 'bg-navy/10'}`}>
+                {isPremium ? <Crown className="w-6 h-6 text-primary" /> : <Zap className="w-6 h-6" />}
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">
-                  {isPremium ? 'Premium' : 'Free'} Plan
-                </h2>
-                <p className="text-muted-foreground">
-                  {isPremium && subscription?.current_period_end
-                    ? `Renews on ${new Date(subscription.current_period_end).toLocaleDateString()}`
-                    : 'Get started with basic features'}
-                </p>
+                <h2 className="text-2xl font-bold">{isPremium ? 'Premium' : 'Free'} Plan</h2>
               </div>
             </div>
           </div>
 
-          {/* Usage Stats */}
           {usage && (
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-foreground">Applications Used</span>
-                  <span className="text-sm text-muted-foreground">
-                    {usage.applications_count} / {isPremium ? 'Unlimited' : usage.applications_limit}
-                  </span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      usagePercentage >= 90 ? 'bg-secondary' : usagePercentage >= 70 ? 'bg-yellow-500' : 'bg-primary'
-                    }`}
-                    style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-                  />
-                </div>
+            <div>
+              <div className="flex justify-between mb-2">
+                <span className="text-sm font-medium">Applications</span>
+                <span className="text-sm">
+                  {usage.applications_count} / {isPremium ? '200' : usage.applications_limit}
+                </span>
               </div>
-
-              {!isPremium && usagePercentage >= 70 && (
-                <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-                  <TrendingUp className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground font-medium mb-1">
-                      You're running low on applications
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Upgrade to Premium for unlimited applications and advanced features.
-                    </p>
-                  </div>
-                </div>
-              )}
+              <div className="w-full bg-muted rounded-full h-3">
+                <div
+                  className={`h-full rounded-full ${usagePercentage >= 90 ? 'bg-red-500' : 'bg-primary'}`}
+                  style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                />
+              </div>
             </div>
           )}
         </div>
 
-        {/* Pricing Plans - Only show if free user */}
-        {!isPremium && (
+        {!isPremium && pricing && (
           <div className="space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-foreground mb-2">Upgrade to Premium</h2>
-              <p className="text-muted-foreground">Choose a plan that works for you</p>
+              <h2 className="text-3xl font-bold mb-2">Upgrade to Premium</h2>
             </div>
             
-            {/* Centered Pricing Cards */}
             <div className="flex justify-center">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-                {/* Monthly Plan */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
                 <div
-                  onClick={() => {
-                    setSelectedPlan('monthly')
-                    setShowUpgradeModal(true)
-                  }}
-                  className={`group relative p-8 rounded-2xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-105 ${
-                    selectedPlan === 'monthly'
-                      ? 'border-primary bg-primary/5 shadow-lg'
-                      : 'border-border hover:border-primary bg-card'
-                  }`}
+                  onClick={() => { setSelectedPlan('monthly'); setShowUpgradeModal(true) }}
+                  className="p-8 rounded-2xl border-2 cursor-pointer hover:border-primary"
                 >
-                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  <h3 className="text-xl font-semibold mb-1">Monthly</h3>
+                  <p className="text-sm text-muted-foreground mb-6">Cancel anytime</p>
                   
-                  <div className="relative z-10">
-                    <h3 className="text-xl font-semibold text-foreground mb-1">Monthly</h3>
-                    <p className="text-sm text-muted-foreground mb-6">Cancel anytime</p>
-                    
-                    <div className="mb-8">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-primary">$12</span>
-                        <span className="text-muted-foreground">/mo</span>
-                      </div>
-                    </div>
+                  <div className="mb-8">
+                    <span className="text-4xl font-bold text-primary">${pricing.pricing.monthly.displayPrice}</span>
+                    <span className="text-muted-foreground">/mo</span>
+                  </div>
 
-                    <ul className="space-y-3 mb-8">
-                      <li className="flex items-center gap-2 text-sm text-foreground">
-                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                        Unlimited applications
+                  <ul className="space-y-3 mb-8">
+                    {pricing.plans.monthly.features?.map((feature: string, i: number) => (
+                      <li key={i} className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary" />
+                        {feature}
                       </li>
-                      <li className="flex items-center gap-2 text-sm text-foreground">
-                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                        Advanced AI analysis
-                      </li>
-                      <li className="flex items-center gap-2 text-sm text-foreground">
-                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                        Priority support
-                      </li>
-                    </ul>
+                    ))}
+                  </ul>
 
-                    <div className="bg-primary text-primary-foreground py-2.5 px-4 rounded-lg text-center font-semibold text-sm transition-opacity group-hover:opacity-90">
-                      Choose Monthly
-                    </div>
+                  <div className="bg-primary text-primary-foreground py-2.5 px-4 rounded-lg text-center font-semibold text-sm">
+                    Choose Monthly
                   </div>
                 </div>
 
-                {/* Yearly Plan */}
                 <div
-                  onClick={() => {
-                    setSelectedPlan('yearly')
-                    setShowUpgradeModal(true)
-                  }}
-                  className={`group relative p-8 rounded-2xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-105 ${
-                    selectedPlan === 'yearly'
-                      ? 'border-primary bg-primary/5 shadow-lg'
-                      : 'border-border hover:border-primary bg-card'
-                  }`}
+                  onClick={() => { setSelectedPlan('yearly'); setShowUpgradeModal(true) }}
+                  className="p-8 rounded-2xl border-2 cursor-pointer hover:border-primary relative"
                 >
-                  <div className="absolute -top-4 right-6 bg-gradient-to-r from-secondary to-secondary/80 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 animate-pulse">
+                  <div className="absolute -top-4 right-6 bg-secondary text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
-                    Save 20%
+                    Save {pricing.pricing.yearly.discountPercentage}%
                   </div>
 
-                  <div className="relative z-10">
-                    <h3 className="text-xl font-semibold text-foreground mb-1">Yearly</h3>
-                    <p className="text-sm text-muted-foreground mb-6">Best value</p>
-                    
-                    <div className="mb-8">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-primary">$115</span>
-                        <span className="text-muted-foreground">/yr</span>
-                      </div>
-                      <p className="text-sm text-secondary font-semibold mt-2">
-                        <span className="line-through text-muted-foreground">$144</span> Save $29
-                      </p>
-                    </div>
+                  <h3 className="text-xl font-semibold mb-1">Yearly</h3>
+                  <p className="text-sm text-muted-foreground mb-6">Best value</p>
+                  
+                  <div className="mb-8">
+                    <span className="text-4xl font-bold text-primary">${pricing.pricing.yearly.displayPrice}</span>
+                    <span className="text-muted-foreground">/yr</span>
+                    <p className="text-sm text-secondary font-semibold mt-2">
+                      Save ${pricing.pricing.yearly.savings.toFixed(2)}
+                    </p>
+                  </div>
 
-                    <ul className="space-y-3 mb-8">
-                      <li className="flex items-center gap-2 text-sm text-foreground">
-                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                        Unlimited applications
+                  <ul className="space-y-3 mb-8">
+                    {pricing.plans.yearly.features?.map((feature: string, i: number) => (
+                      <li key={i} className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary" />
+                        {feature}
                       </li>
-                      <li className="flex items-center gap-2 text-sm text-foreground">
-                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                        Advanced AI analysis
-                      </li>
-                      <li className="flex items-center gap-2 text-sm text-foreground">
-                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                        Priority support
-                      </li>
-                    </ul>
+                    ))}
+                  </ul>
 
-                    <div className="bg-primary text-primary-foreground py-2.5 px-4 rounded-lg text-center font-semibold text-sm transition-opacity group-hover:opacity-90">
-                      Choose Yearly
-                    </div>
+                  <div className="bg-primary text-primary-foreground py-2.5 px-4 rounded-lg text-center font-semibold text-sm">
+                    Choose Yearly
                   </div>
                 </div>
               </div>
@@ -503,91 +349,64 @@ export default function BillingPage() {
           </div>
         )}
 
-        {/* Payment Method */}
         {isPremium && (
-          <div className="bg-card rounded-3xl shadow-lg p-8 border border-border">
+          <div className="bg-card rounded-3xl shadow-lg p-8 border">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-foreground">Payment Method</h2>
+              <h2 className="text-xl font-semibold">Manage Billing</h2>
               <button
                 onClick={handleManagePaymentMethod}
+                disabled={portalLoading}
                 className="text-primary font-semibold hover:underline flex items-center gap-2"
               >
                 <Settings className="w-4 h-4" />
-                Manage
+                Customer Portal
               </button>
             </div>
 
-            {paymentMethod ? (
-              <div className="flex items-center gap-4 p-4 bg-muted rounded-xl">
-                <div className="w-12 h-12 bg-card rounded-lg flex items-center justify-center border border-border">
-                  <CreditCard className="w-6 h-6 text-foreground" />
+            {subscription && (
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Plan</span>
+                  <span className="font-semibold">Premium {subscription.billing_cycle || ''}</span>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground capitalize">
-                    {paymentMethod.brand} •••• {paymentMethod.last4}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Expires {paymentMethod.exp_month}/{paymentMethod.exp_year}
-                  </p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status</span>
+                  <span className="font-semibold capitalize">{subscription.status}</span>
                 </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground mb-4">No payment method on file</p>
-                <button
-                  onClick={handleManagePaymentMethod}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  Add Payment Method
-                </button>
+                {!subscription.cancel_at_period_end && (
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    className="text-secondary hover:underline text-sm"
+                  >
+                    Cancel subscription
+                  </button>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* Billing History */}
-        {isPremium && invoices.length > 0 && (
-          <div className="bg-card rounded-3xl shadow-lg p-8 border border-border">
-            <h2 className="text-xl font-semibold text-foreground mb-6">Billing History</h2>
-            
-            <div className="space-y-3">
+        {invoices.length > 0 && (
+          <div className="bg-card rounded-3xl shadow-lg p-8 border">
+            <h2 className="text-xl font-semibold mb-6">Invoices</h2>
+            <div className="space-y-4">
               {invoices.map((invoice) => (
-                <div
-                  key={invoice.id}
-                  className="flex items-center justify-between p-4 bg-muted rounded-xl hover:bg-muted/80 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-card rounded-lg flex items-center justify-center border border-border">
-                      <Calendar className="w-5 h-5 text-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">
-                        ${(invoice.amount / 100).toFixed(2)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : 'N/A'}
-                      </p>
+                <div key={invoice.id} className="flex justify-between items-center py-3 border-b last:border-0">
+                  <div>
+                    <div className="font-medium">${(invoice.amount / 100).toFixed(2)}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {new Date(invoice.created_at!).toLocaleDateString()}
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      invoice.status === 'paid'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
+                  <div className="flex items-center gap-4">
+                    <span className={`text-sm px-3 py-1 rounded-full ${
+                      invoice.status === 'paid' ? 'bg-green-500/10 text-green-600' : 'bg-yellow-500/10 text-yellow-600'
                     }`}>
-                      {invoice.status === 'paid' ? 'Paid' : 'Pending'}
+                      {invoice.status}
                     </span>
-                    
                     {invoice.invoice_pdf && (
-                      <a
-                        href={invoice.invoice_pdf}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 hover:bg-card rounded-lg transition-colors"
-                      >
-                        <Download className="w-5 h-5 text-muted-foreground" />
+                      <a href={invoice.invoice_pdf} target="_blank" rel="noopener noreferrer">
+                        <Download className="w-4 h-4 text-primary" />
                       </a>
                     )}
                   </div>
@@ -596,77 +415,49 @@ export default function BillingPage() {
             </div>
           </div>
         )}
-
-        {/* Cancel Subscription */}
-        {isPremium && !subscription?.cancel_at_period_end && (
-          <div className="bg-card rounded-3xl shadow-lg p-8 border border-border">
-            <h2 className="text-xl font-semibold text-foreground mb-2">Cancel Subscription</h2>
-            <p className="text-muted-foreground mb-6">
-              You can cancel your subscription at any time. You'll continue to have access until the end of your billing period.
-            </p>
-            <button
-              onClick={() => setShowCancelModal(true)}
-              className="text-secondary font-semibold hover:underline"
-            >
-              Cancel my subscription
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Upgrade Modal */}
-      {showUpgradeModal && (
+      {showUpgradeModal && pricing && selectedPlan && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-border animate-in fade-in zoom-in-95 duration-300">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Crown className="w-8 h-8 text-primary" />
-              </div>
-              <h2 className="text-3xl font-bold text-foreground mb-2">Upgrade to Premium</h2>
-              <p className="text-muted-foreground">
-                {selectedPlan === 'monthly' 
-                  ? '$12/month, cancel anytime'
-                  : '$115/year (save $29 with 20% off)'
-                }
-              </p>
-            </div>
+          <div className="bg-card rounded-3xl shadow-2xl max-w-lg w-full p-8 border">
+            <h2 className="text-3xl font-bold mb-4">Upgrade to Premium</h2>
+            <p className="text-lg mb-2">
+              ${selectedPlan === 'monthly' ? pricing.pricing.monthly.displayPrice : pricing.pricing.yearly.displayPrice}
+              {selectedPlan === 'monthly' ? '/month' : '/year'}
+            </p>
 
-            <div className="space-y-4 mb-8">
+            <div className="space-y-4 my-8">
               <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span className="text-foreground">Unlimited job applications</span>
+                <Check className="w-5 h-5 text-primary mt-0.5" />
+                <span>AI-powered job matching & analysis</span>
               </div>
               <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span className="text-foreground">Advanced AI analysis</span>
+                <Check className="w-5 h-5 text-primary mt-0.5" />
+                <span>Track up to 200 active applications</span>
               </div>
               <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span className="text-foreground">Priority interview prep</span>
+                <Check className="w-5 h-5 text-primary mt-0.5" />
+                <span>Company research & insights</span>
               </div>
               <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span className="text-foreground">Resume optimization</span>
-              </div>
-              <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span className="text-foreground">24/7 priority support</span>
+                <Check className="w-5 h-5 text-primary mt-0.5" />
+                <span>AI interview preparation</span>
               </div>
             </div>
 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowUpgradeModal(false)}
-                className="flex-1 py-3 rounded-xl border-2 border-border text-foreground font-semibold hover:bg-muted transition-colors"
+                className="flex-1 py-3 rounded-xl border-2 font-semibold"
               >
-                Maybe Later
+                Cancel
               </button>
               <button
                 onClick={handleUpgradeToPremium}
-                disabled={actionLoading}
-                className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                disabled={checkoutLoading}
+                className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2"
               >
-                {actionLoading ? (
+                {checkoutLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
                     Processing...
@@ -683,52 +474,32 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* Cancel Confirmation Modal */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-border animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-card rounded-3xl shadow-2xl max-w-lg w-full p-8 border">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-secondary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <AlertCircle className="w-8 h-8 text-secondary" />
               </div>
-              <h2 className="text-3xl font-bold text-foreground mb-2">Cancel Subscription?</h2>
+              <h2 className="text-3xl font-bold mb-2">Cancel Subscription?</h2>
               <p className="text-muted-foreground">
-                You'll lose access to premium features at the end of your billing period on{' '}
-                {subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : 'N/A'}
+                You'll lose access on {subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : 'N/A'}
               </p>
-            </div>
-
-            <div className="space-y-3 mb-8 text-left">
-              <p className="text-sm text-muted-foreground">You'll lose access to:</p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-secondary">
-                  <div className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                  <span className="text-sm">Unlimited applications</span>
-                </div>
-                <div className="flex items-center gap-2 text-secondary">
-                  <div className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                  <span className="text-sm">Advanced AI features</span>
-                </div>
-                <div className="flex items-center gap-2 text-secondary">
-                  <div className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                  <span className="text-sm">Priority support</span>
-                </div>
-              </div>
             </div>
 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCancelModal(false)}
-                className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity"
+                className="flex-1 py-3 rounded-xl border-2 font-semibold"
               >
-                Keep Premium
+                Keep Subscription
               </button>
               <button
                 onClick={handleCancelSubscription}
-                disabled={actionLoading}
-                className="flex-1 py-3 rounded-xl border-2 border-secondary text-secondary font-semibold hover:bg-secondary/10 transition-colors disabled:opacity-50"
+                disabled={cancelLoading}
+                className="flex-1 py-3 rounded-xl bg-secondary text-white font-semibold"
               >
-                {actionLoading ? 'Processing...' : 'Cancel Subscription'}
+                {cancelLoading ? 'Processing...' : 'Cancel Subscription'}
               </button>
             </div>
           </div>

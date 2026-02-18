@@ -1,7 +1,7 @@
 'use client'
 
 import { Sparkles } from 'lucide-react'
-import { Application } from '@/lib/supabase/types'
+import { Application } from '@/lib/supabase/dodo-types'
 
 interface AIAdvisorButtonProps {
   applications: Application[]

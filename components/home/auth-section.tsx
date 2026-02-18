@@ -57,7 +57,7 @@ export default function AuthSection() {
   useEffect(() => {
     const checkUserAndOnboarding = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       if (user && step !== 'reset-password') {
         // Fetch user's profile to check onboarding status
         const { data: profile, error: profileError } = await supabase
@@ -90,7 +90,7 @@ export default function AuthSection() {
           if (!toastShown) {
             // Check auth provider to show appropriate message
             const provider = user.app_metadata?.provider
-            
+
             if (provider === 'google') {
               toast.success('Signed in with Google successfully!')
             } else if (user.email_confirmed_at) {
@@ -115,7 +115,7 @@ export default function AuthSection() {
         }
       }
     }
-    
+
     checkUserAndOnboarding()
   }, [intentUpgrade, step, toastShown])
 
@@ -144,168 +144,252 @@ export default function AuthSection() {
   const headerText = getHeaderText()
 
   return (
-    <div className="bg-card rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-md w-full mx-auto border border-border">
-      {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center justify-center relative">
-          {step !== 'initial' && step !== 'verify' && step !== 'forgot-password-sent' && (
-            <button
-              onClick={goBack}
-              className="absolute left-0 p-1.5 sm:p-2 hover:bg-muted rounded-full transition-colors"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
-            </button>
-          )}
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">{headerText.title}</h1>
-        </div>
-        <p className="text-sm sm:text-base text-muted-foreground text-center mt-1.5 sm:mt-2">{headerText.subtitle}</p>
-      </div>
+    <div className="w-full flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
 
-      <div className="space-y-3 sm:space-y-4">
-        {/* Initial Step - Google + Email Entry */}
-        {step === 'initial' && (
-          <>
-            <GoogleAuthButton 
-              loading={googleLoading} 
-              onLoading={setGoogleLoading}
-              intentUpgrade={intentUpgrade}
-            />
+        {/* Auth Card */}
+        <div className="
+        bg-card
+        rounded-3xl
+        shadow-[0_20px_60px_rgba(0,0,0,0.08)]
+        border border-border/60
+        px-8 py-10
+        sm:px-10 sm:py-12
+      ">
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs sm:text-sm">
-                <span className="px-2 sm:px-3 bg-card text-muted-foreground">or</span>
-              </div>
+          {/* Header */}
+          <div className="mb-8">
+
+            <div className="relative flex items-center justify-center">
+
+              {step !== 'initial' && step !== 'verify' && step !== 'forgot-password-sent' && (
+                <button
+                  onClick={goBack}
+                  className="
+                  absolute left-0
+                  flex items-center justify-center
+                  w-9 h-9
+                  rounded-full
+                  hover:bg-muted
+                  transition-colors
+                "
+                  aria-label="Go back"
+                >
+                  <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+                </button>
+              )}
+
+              <h1 className="
+              text-3xl
+              sm:text-4xl
+              font-semibold
+              text-foreground
+              tracking-tight
+            ">
+                {headerText.title}
+              </h1>
+
             </div>
 
-            <EmailStep
-              email={email}
-              onEmailChange={setEmail}
-              loading={emailLoading}
-              onLoading={setEmailLoading}
-              onNewUser={() => setStep('create-password')}
-              onExistingUser={() => setStep('password')}
-            />
-          </>
-        )}
+            <p className="
+            text-muted-foreground
+            text-base
+            text-center
+            mt-2
+          ">
+              {headerText.subtitle}
+            </p>
 
-        {/* Email Step (from non-initial entry) */}
-        {step === 'email' && (
-          <EmailStep
-            email={email}
-            onEmailChange={setEmail}
-            loading={emailLoading}
-            onLoading={setEmailLoading}
-            onNewUser={() => setStep('create-password')}
-            onExistingUser={() => setStep('password')}
-          />
-        )}
+          </div>
 
-        {/* Create Password Step */}
-        {step === 'create-password' && (
-          <CreatePasswordStep
-            email={email}
-            password={password}
-            confirmPassword={confirmPassword}
-            showPassword={showPassword}
-            showConfirmPassword={showConfirmPassword}
-            loading={emailLoading}
-            onPasswordChange={setPassword}
-            onConfirmPasswordChange={setConfirmPassword}
-            onShowPasswordChange={setShowPassword}
-            onShowConfirmPasswordChange={setShowConfirmPassword}
-            onSuccess={() => setStep('verify')}
-            onLoading={setEmailLoading}
-            intentUpgrade={intentUpgrade}
-          />
-        )}
 
-        {/* Password Step */}
-        {step === 'password' && (
-          <PasswordStep
-            email={email}
-            password={password}
-            showPassword={showPassword}
-            loading={emailLoading}
-            onPasswordChange={setPassword}
-            onShowPasswordChange={setShowPassword}
-            onSuccess={() => {
-              toast.success('Welcome back!')
-              // Let the useEffect handle routing based on onboarding status
-              router.refresh()
-            }}
-            onForgotPassword={() => setStep('forgot-password')}
-            onLoading={setEmailLoading}
-          />
-        )}
+          {/* Content */}
+          <div className="space-y-5">
 
-        {/* Verify Step */}
-        {step === 'verify' && (
-          <VerifyStep
-            email={email}
-            intentUpgrade={intentUpgrade}
-            onChangeEmail={() => {
-              setStep('initial')
-              setEmail('')
-            }}
-          />
-        )}
+            {/* Initial Step */}
+            {step === 'initial' && (
+              <>
+                <GoogleAuthButton
+                  loading={googleLoading}
+                  onLoading={setGoogleLoading}
+                  intentUpgrade={intentUpgrade}
+                />
 
-        {/* Forgot Password Step */}
-        {step === 'forgot-password' && (
-          <ForgotPasswordStep
-            email={email}
-            onEmailChange={setEmail}
-            loading={emailLoading}
-            onLoading={setEmailLoading}
-            onSuccess={() => setStep('forgot-password-sent')}
-          />
-        )}
+                {/* Divider */}
+                <div className="relative flex items-center">
+                  <div className="flex-grow border-t border-border"></div>
 
-        {/* Forgot Password Sent Step */}
-        {step === 'forgot-password-sent' && (
-          <ForgotPasswordSentStep
-            email={email}
-            onRetry={() => {
-              setStep('forgot-password')
-              setEmail('')
-            }}
-          />
-        )}
+                  <span className="
+                  mx-4
+                  text-sm
+                  text-muted-foreground
+                  bg-card
+                ">
+                    or
+                  </span>
 
-        {/* Reset Password Step */}
-        {step === 'reset-password' && (
-          <ResetPasswordStep
-            password={password}
-            confirmPassword={confirmPassword}
-            showPassword={showPassword}
-            showConfirmPassword={showConfirmPassword}
-            loading={emailLoading}
-            onPasswordChange={setPassword}
-            onConfirmPasswordChange={setConfirmPassword}
-            onShowPasswordChange={setShowPassword}
-            onShowConfirmPasswordChange={setShowConfirmPassword}
-            onSuccess={() => {
-              toast.success('Password reset successfully!')
-              // Let the useEffect handle routing based on onboarding status
-              router.refresh()
-            }}
-            onLoading={setEmailLoading}
-          />
-        )}
+                  <div className="flex-grow border-t border-border"></div>
+                </div>
+
+                <EmailStep
+                  email={email}
+                  onEmailChange={setEmail}
+                  loading={emailLoading}
+                  onLoading={setEmailLoading}
+                  onNewUser={() => setStep('create-password')}
+                  onExistingUser={() => setStep('password')}
+                />
+              </>
+            )}
+
+
+            {/* Email Step */}
+            {step === 'email' && (
+              <EmailStep
+                email={email}
+                onEmailChange={setEmail}
+                loading={emailLoading}
+                onLoading={setEmailLoading}
+                onNewUser={() => setStep('create-password')}
+                onExistingUser={() => setStep('password')}
+              />
+            )}
+
+
+            {/* Create Password */}
+            {step === 'create-password' && (
+              <CreatePasswordStep
+                email={email}
+                password={password}
+                confirmPassword={confirmPassword}
+                showPassword={showPassword}
+                showConfirmPassword={showConfirmPassword}
+                loading={emailLoading}
+                onPasswordChange={setPassword}
+                onConfirmPasswordChange={setConfirmPassword}
+                onShowPasswordChange={setShowPassword}
+                onShowConfirmPasswordChange={setShowConfirmPassword}
+                onSuccess={() => setStep('verify')}
+                onLoading={setEmailLoading}
+                intentUpgrade={intentUpgrade}
+              />
+            )}
+
+
+            {/* Password */}
+            {step === 'password' && (
+              <PasswordStep
+                email={email}
+                password={password}
+                showPassword={showPassword}
+                loading={emailLoading}
+                onPasswordChange={setPassword}
+                onShowPasswordChange={setShowPassword}
+                onSuccess={() => {
+                  toast.success('Welcome back!')
+                  router.refresh()
+                }}
+                onForgotPassword={() => setStep('forgot-password')}
+                onLoading={setEmailLoading}
+              />
+            )}
+
+
+            {/* Verify */}
+            {step === 'verify' && (
+              <VerifyStep
+                email={email}
+                intentUpgrade={intentUpgrade}
+                onChangeEmail={() => {
+                  setStep('initial')
+                  setEmail('')
+                }}
+              />
+            )}
+
+
+            {/* Forgot */}
+            {step === 'forgot-password' && (
+              <ForgotPasswordStep
+                email={email}
+                onEmailChange={setEmail}
+                loading={emailLoading}
+                onLoading={setEmailLoading}
+                onSuccess={() => setStep('forgot-password-sent')}
+              />
+            )}
+
+
+            {/* Forgot Sent */}
+            {step === 'forgot-password-sent' && (
+              <ForgotPasswordSentStep
+                email={email}
+                onRetry={() => {
+                  setStep('forgot-password')
+                  setEmail('')
+                }}
+              />
+            )}
+
+
+            {/* Reset */}
+            {step === 'reset-password' && (
+              <ResetPasswordStep
+                password={password}
+                confirmPassword={confirmPassword}
+                showPassword={showPassword}
+                showConfirmPassword={showConfirmPassword}
+                loading={emailLoading}
+                onPasswordChange={setPassword}
+                onConfirmPasswordChange={setConfirmPassword}
+                onShowPasswordChange={setShowPassword}
+                onShowConfirmPasswordChange={setShowConfirmPassword}
+                onSuccess={() => {
+                  toast.success('Password reset successfully!')
+                  router.refresh()
+                }}
+                onLoading={setEmailLoading}
+              />
+            )}
+
+          </div>
+
+
+          {/* Terms */}
+          {(step === 'initial' ||
+            step === 'email' ||
+            step === 'create-password' ||
+            step === 'password' ||
+            step === 'forgot-password') && (
+
+              <p className="
+            text-xs
+            text-muted-foreground
+            text-center
+            mt-8
+          ">
+                By continuing, you agree to our{" "}
+                <a
+                  href="#"
+                  className="text-primary font-medium hover:underline"
+                >
+                  Terms
+                </a>
+                {" "}and{" "}
+                <a
+                  href="#"
+                  className="text-primary font-medium hover:underline"
+                >
+                  Privacy Policy
+                </a>
+              </p>
+
+            )}
+
+        </div>
+
       </div>
-
-      {(step === 'initial' || step === 'email' || step === 'create-password' || step === 'password' || step === 'forgot-password') && (
-        <p className="text-[10px] sm:text-xs text-muted-foreground text-center mt-4 sm:mt-6 px-2">
-          By continuing, you agree to our{' '}
-          <a href="#" className="text-secondary hover:underline font-medium">Terms</a>
-          {' '}and{' '}
-          <a href="#" className="text-secondary hover:underline font-medium">Privacy Policy</a>
-        </p>
-      )}
     </div>
   )
+
 }
