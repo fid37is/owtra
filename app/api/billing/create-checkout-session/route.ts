@@ -6,9 +6,8 @@ import type { CreateCheckoutSessionRequest } from '@/lib/dodo/types'
 export async function POST(request: NextRequest) {
   try {
     const body: CreateCheckoutSessionRequest = await request.json()
-    const { userId, email, billingCycle } = body
+    const { userId, email, billingCycle, trialDays = 0 } = body
 
-    // Validate request
     if (!userId || !email || !billingCycle) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -23,8 +22,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user from database
     const supabase = await createClient()
+
     const { data: user, error: userError } = await supabase
       .from('profiles')
       .select('*')
@@ -38,7 +37,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get plan from database
     const { data: plan, error: planError } = await supabase
       .from('subscription_plans')
       .select('*')
@@ -52,7 +50,7 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
-    
+
     if (!plan.dodo_product_id) {
       return NextResponse.json(
         { error: 'Product ID not configured in database' },
@@ -60,7 +58,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create checkout session with Dodo Payments
     const session = await dodoClient.checkoutSessions.create({
       product_cart: [
         {
@@ -69,7 +66,7 @@ export async function POST(request: NextRequest) {
         },
       ],
       customer: {
-        email: email,
+        email,
         name: user.full_name || email,
       },
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/success`,
@@ -77,12 +74,15 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         billing_cycle: billingCycle,
         plan_id: plan.plan_id,
+        trial_days: trialDays.toString(),
       },
+      ...(trialDays > 0 && { trial_period_days: trialDays }),
     })
 
     return NextResponse.json({
       sessionId: session.session_id,
       checkoutUrl: session.checkout_url,
+      trialDays,
     })
   } catch (error: any) {
     console.error('Error creating checkout session:', error)

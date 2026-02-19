@@ -14,16 +14,14 @@ import type {
   CreatePortalSessionResponse,
 } from '@/lib/dodo/types'
 
-/**
- * Hook to create checkout session
- */
 export function useCreateCheckout() {
   const [loading, setLoading] = useState(false)
 
   const createCheckout = async (
     userId: string,
     email: string,
-    billingCycle: 'monthly' | 'yearly'
+    billingCycle: 'monthly' | 'yearly',
+    trialDays: number = 0
   ): Promise<CreateCheckoutSessionResponse | null> => {
     setLoading(true)
     try {
@@ -34,7 +32,8 @@ export function useCreateCheckout() {
           userId,
           email,
           billingCycle,
-        } as CreateCheckoutSessionRequest),
+          trialDays,
+        } as unknown as CreateCheckoutSessionRequest),
       })
 
       const data = await response.json()
@@ -56,23 +55,16 @@ export function useCreateCheckout() {
   return { createCheckout, loading }
 }
 
-/**
- * Hook to cancel subscription
- */
 export function useCancelSubscription() {
   const [loading, setLoading] = useState(false)
 
-  const cancelSubscription = async (
-    subscriptionId: string
-  ): Promise<boolean> => {
+  const cancelSubscription = async (subscriptionId: string): Promise<boolean> => {
     setLoading(true)
     try {
       const response = await fetch('/api/billing/cancel-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscriptionId,
-        } as CancelSubscriptionRequest),
+        body: JSON.stringify({ subscriptionId } as CancelSubscriptionRequest),
       })
 
       const data = await response.json()
@@ -95,23 +87,16 @@ export function useCancelSubscription() {
   return { cancelSubscription, loading }
 }
 
-/**
- * Hook to reactivate subscription
- */
 export function useReactivateSubscription() {
   const [loading, setLoading] = useState(false)
 
-  const reactivateSubscription = async (
-    subscriptionId: string
-  ): Promise<boolean> => {
+  const reactivateSubscription = async (subscriptionId: string): Promise<boolean> => {
     setLoading(true)
     try {
       const response = await fetch('/api/billing/reactivate-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscriptionId,
-        } as CancelSubscriptionRequest),
+        body: JSON.stringify({ subscriptionId } as CancelSubscriptionRequest),
       })
 
       const data = await response.json()
@@ -134,9 +119,6 @@ export function useReactivateSubscription() {
   return { reactivateSubscription, loading }
 }
 
-/**
- * Hook to open customer portal
- */
 export function useCustomerPortal() {
   const [loading, setLoading] = useState(false)
 
@@ -146,9 +128,7 @@ export function useCustomerPortal() {
       const response = await fetch('/api/billing/create-portal-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId,
-        } as CreatePortalSessionRequest),
+        body: JSON.stringify({ customerId } as CreatePortalSessionRequest),
       })
 
       const data: CreatePortalSessionResponse = await response.json()
@@ -157,7 +137,6 @@ export function useCustomerPortal() {
         throw new Error(data.error || 'Failed to open customer portal')
       }
 
-      // Redirect to portal
       window.location.href = data.portalUrl
     } catch (error: any) {
       console.error('Error opening portal:', error)
@@ -170,16 +149,12 @@ export function useCustomerPortal() {
   return { openPortal, loading }
 }
 
-/**
- * Hook to fetch subscription data
- */
 export function useSubscription() {
   const [loading, setLoading] = useState(false)
 
   const syncSubscription = async (userId: string): Promise<boolean> => {
     setLoading(true)
     try {
-      // This would call an API endpoint to sync subscription from Dodo
       const response = await fetch('/api/billing/sync-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

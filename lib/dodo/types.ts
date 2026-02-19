@@ -108,6 +108,7 @@ export interface CreateCheckoutSessionRequest {
   billingCycle: 'monthly' | 'yearly'
   successUrl?: string
   cancelUrl?: string
+  trialDays?: number
 }
 
 export interface CreateCheckoutSessionResponse {
