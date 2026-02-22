@@ -26,8 +26,8 @@ export default function HomeHero() {
       url.searchParams.set('priceId', priceId)
     }
     window.history.pushState({}, '', url)
-    window.dispatchEvent(new CustomEvent('upgrade-intent', { 
-      detail: { billingCycle, priceId } 
+    window.dispatchEvent(new CustomEvent('upgrade-intent', {
+      detail: { billingCycle, priceId }
     }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -46,7 +46,8 @@ export default function HomeHero() {
 
   return (
     <div className="min-h-screen bg-background">
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes pulse-subtle {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.8; }
@@ -63,7 +64,7 @@ export default function HomeHero() {
         }
         html { scroll-behavior: smooth; }
       `}} />
-      
+
       <HomeNav />
 
       {/* Hero Section */}
@@ -77,22 +78,114 @@ export default function HomeHero() {
           {/* Right Side - Hero Visual */}
           <div className="order-1 lg:order-2">
             <div className="relative w-full max-w-4xl mx-auto h-[400px] sm:h-[500px] lg:h-[700px]">
-              <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-gradient-to-b from-transparent via-secondary to-transparent opacity-30"></div>
-              
-              <div className="relative w-full h-full rounded-3xl overflow-hidden">
-                <div className="absolute inset-0 flex flex-col items-center justify-center px-4 pb-12 sm:pb-20 text-center">
-                  <h1 className="text-4xl sm:text-6xl lg:text-8xl font-bold text-foreground mb-6 sm:mb-12 tracking-tight">
-                    Owtra
-                  </h1>
-                  <p className="text-lg sm:text-2xl lg:text-3xl text-muted-foreground font-light max-w-2xl leading-relaxed">
-                    Smart tracking and insights for every job application.
-                  </p>
-                  
-                  <div className="absolute bottom-6 sm:bottom-12 left-1/2 transform -translate-x-1/2 animate-bounce">
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                    </svg>
+              {/* Soft gradient background - blue to white */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-100/40 via-blue-50/20 to-transparent"></div>
+
+              {/* Scattered sparkle dots */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {[...Array(25)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute rounded-full bg-white/60"
+                    style={{
+                      width: `${2 + Math.random() * 3}px`,
+                      height: `${2 + Math.random() * 3}px`,
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                      opacity: 0.4 + Math.random() * 0.4,
+                      animation: `pulse ${2 + Math.random() * 3}s ease-in-out infinite`,
+                      animationDelay: `${Math.random() * 2}s`
+                    }}
+                  ></div>
+                ))}
+              </div>
+
+              <div className="relative w-full h-full flex flex-col items-center justify-start pt-16 sm:pt-24 lg:pt-32 px-4 sm:px-8">
+                {/* Large Owtra heading */}
+                <h1 className="text-6xl sm:text-7xl lg:text-8xl xl:text-9xl font-bold text-slate-800/90 mb-4 sm:mb-6 tracking-tight text-center">
+                  Owtra
+                </h1>
+
+                {/* Subtitle */}
+                <p className="text-lg sm:text-xl lg:text-2xl text-slate-600/80 font-normal max-w-2xl leading-relaxed mb-12 sm:mb-16 text-center px-4">
+                  Smart tracking and insights for every job application.
+                </p>
+
+                {/* Floating Dashboard Cards - positioned lower and to the left */}
+                <div className="relative w-full max-w-md lg:max-w-xl">
+
+                  {/* Applied Card - top left, semi-transparent */}
+                  <div className="absolute left-0 top-0 bg-white/70 backdrop-blur-md rounded-xl shadow-lg p-4 w-48 sm:w-56 border border-white/40 z-10">
+                    <div className="bg-blue-100/80 text-blue-600 px-3 py-1 rounded-lg text-xs font-medium inline-block mb-3">
+                      Applied
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-400/70">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                      </svg>
+                      <span className="text-sm">Company name</span>
+                    </div>
                   </div>
+
+                  {/* Referral Card - below Applied, offset */}
+                  <div className="absolute left-0 top-24 bg-white/60 backdrop-blur-md rounded-xl shadow-lg p-4 w-40 sm:w-48 border border-white/30">
+                    <div className="bg-slate-100/80 text-slate-600 px-3 py-1 rounded-lg text-xs font-medium inline-block">
+                      Referral
+                    </div>
+                  </div>
+
+                  {/* Calendar/Dashboard Card - right side, larger */}
+                  <div className="absolute right-0 top-12 bg-white/50 backdrop-blur-md rounded-2xl shadow-xl p-5 sm:p-6 w-72 sm:w-80 lg:w-96 border border-white/30">
+
+                    {/* Mini calendar header numbers */}
+                    <div className="grid grid-cols-7 gap-1 mb-2 text-center">
+                      {['27', '28', '24', '25', '26', '', ''].map((num, i) => (
+                        <div key={i} className="text-[10px] text-slate-400/60 font-medium">
+                          {num}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Calendar dates with colored pills */}
+                    <div className="grid grid-cols-7 gap-1.5 mb-4">
+                      {[
+                        { day: '27', bg: '' },
+                        { day: '28', bg: '' },
+                        { day: '29', bg: 'bg-blue-500' },
+                        { day: '30', bg: '' },
+                        { day: '31', bg: 'bg-emerald-400' },
+                        { day: '1', bg: 'bg-blue-300' },
+                        { day: '2', bg: '' }
+                      ].map((item, i) => (
+                        <div key={i} className="flex justify-center">
+                          <div className={`w-7 h-7 flex items-center justify-center text-xs rounded-lg ${item.bg ? `${item.bg} text-white font-medium` : 'text-slate-500/60'
+                            }`}>
+                            {item.day}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Event indicator bars */}
+                    <div className="space-y-2 mt-4">
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-1.5 bg-blue-400/70 rounded-full" style={{ width: '35%' }}></div>
+                        <div className="h-1.5 bg-slate-300/40 rounded-full" style={{ width: '25%' }}></div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-1.5 bg-orange-300/70 rounded-full" style={{ width: '28%' }}></div>
+                        <div className="h-1.5 bg-slate-300/40 rounded-full" style={{ width: '20%' }}></div>
+                      </div>
+                    </div>
+
+                    {/* Small dots in background */}
+                    <div className="absolute top-3 right-3 flex gap-1.5 opacity-30">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -145,7 +238,7 @@ export default function HomeHero() {
                 Today, we help thousands of professionals organize their job search, discover better opportunities, and land roles at companies they love. Our AI-powered platform learns from successful job searches to give you personalized insights and recommendations.
               </p>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4 sm:gap-6">
               <StatCard icon={<Users className="w-6 h-6 sm:w-8 sm:h-8" />} value="10K+" label="Active Users" />
               <StatCard icon={<Award className="w-6 h-6 sm:w-8 sm:h-8" />} value="50K+" label="Jobs Tracked" />
@@ -212,7 +305,7 @@ export default function HomeHero() {
 
               <div className="mb-6">
                 <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-4">Premium</h3>
-                
+
                 {/* Billing Toggle */}
                 <div className="inline-flex items-center bg-muted rounded-full p-1 gap-1 mb-4">
                   <button

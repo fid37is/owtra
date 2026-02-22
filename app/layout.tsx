@@ -1,21 +1,83 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+
 import { ToastProvider } from '@/components/providers/toast-provider'
 import { ThemeProvider } from '@/components/providers/theme-provider'
+import { ServiceWorkerProvider } from '@/components/providers/sw-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_APP_URL || 'https://owtra.xyz'
+
 export const metadata: Metadata = {
-  title: 'Owtra - Smarter Tracking, Sharper Insights',
-  description: 'Smart job application tracking with AI-powered company matching',
+  metadataBase: new URL(baseUrl),
+
+  title: {
+    default: 'Owtra – Job Application Tracker',
+    template: '%s | Owtra',
+  },
+
+  description:
+    'Smart job application tracking with AI-powered company matching. Track, analyze and land better roles.',
+
+  applicationName: 'Owtra',
+
+  keywords: [
+    'job tracker',
+    'job application tracker',
+    'career tracking',
+    'AI job matching',
+    'productivity tool',
+  ],
+
+  authors: [{ name: 'Owtra Team' }],
+  creator: 'Owtra',
+  publisher: 'Owtra',
+
+  icons: {
+    icon: [
+      { url: '/icons/icon-32x32.png', sizes: '32x32' },
+      { url: '/icons/icon-16x16.png', sizes: '16x16' },
+    ],
+    apple: [{ url: '/icons/icon-180x180.png', sizes: '180x180' }],
+  },
+
+  manifest: '/manifest.json',
+
+  openGraph: {
+    title: 'Owtra – Smarter Tracking. Sharper Insights.',
+    description:
+      'AI-powered job application tracking built to help you land the perfect role.',
+    url: baseUrl,
+    siteName: 'Owtra',
+    images: [
+      {
+        url: '/og/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Owtra Job Application Tracker',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Owtra – Smarter Tracking. Sharper Insights.',
+    description:
+      'Track applications. Analyze performance. Get AI-powered company matching.',
+    images: ['/og/og-image.png'],
+  },
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ff304f' },
-    { media: '(prefers-color-scheme: dark)', color: '#002651' }
-  ],
+  themeColor: '#1e40af',
+  colorScheme: 'light dark',
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({
@@ -25,21 +87,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const theme = localStorage.getItem('theme') || 
-                  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                document.documentElement.classList.add(theme);
-              } catch (e) {}
-            `,
-          }}
-        />
-      </head>
       <body className={inter.className}>
         <ThemeProvider>
+          <ServiceWorkerProvider />
           {children}
           <ToastProvider />
         </ThemeProvider>
