@@ -15,9 +15,10 @@ import {
 import type { DodoWebhookPayload, DodoWebhookHeaders } from '@/lib/dodo/types'
 import { createClient } from '@/lib/supabase/client'
 
-const webhook = new Webhook(dodoConfig.webhookSecret)
-
 export async function POST(request: NextRequest) {
+
+  const webhook = new Webhook(dodoConfig.webhookSecret)
+
   try {
     // Get raw body for signature verification
     const rawBody = await request.text()
