@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import HomeHero from '@/components/home/Home-hero'
+import PageLayout from '@/components/page-layout'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -13,5 +14,9 @@ export default async function HomePage() {
     redirect('/dashboard')
   }
 
-  return <HomeHero />
+  return (
+    <PageLayout>
+      <HomeHero />
+    </PageLayout>
+  )
 }

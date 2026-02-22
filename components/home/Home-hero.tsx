@@ -1,8 +1,8 @@
 'use client'
 
-import AuthSection from './auth-section';
+import AuthSection from './auth-section'
 import { Target, BarChart3, Bell, Search, TrendingUp, Zap, Check, Users, Award, Clock, Shield, ChevronDown } from 'lucide-react'
-import HomeNav from './home-nav'
+import ReviewsSection from './reviews-section'
 import { useState } from 'react'
 
 export default function HomeHero() {
@@ -22,13 +22,9 @@ export default function HomeHero() {
     const url = new URL(window.location.href)
     url.searchParams.set('upgrade', 'true')
     url.searchParams.set('plan', billingCycle)
-    if (priceId) {
-      url.searchParams.set('priceId', priceId)
-    }
+    if (priceId) url.searchParams.set('priceId', priceId)
     window.history.pushState({}, '', url)
-    window.dispatchEvent(new CustomEvent('upgrade-intent', {
-      detail: { billingCycle, priceId }
-    }))
+    window.dispatchEvent(new CustomEvent('upgrade-intent', { detail: { billingCycle, priceId } }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -45,43 +41,31 @@ export default function HomeHero() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <style dangerouslySetInnerHTML={{
         __html: `
         @keyframes pulse-subtle {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.8; }
         }
-        .animate-pulse-subtle {
-          animation: pulse-subtle 3s ease-in-out infinite;
-        }
+        .animate-pulse-subtle { animation: pulse-subtle 3s ease-in-out infinite; }
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
         }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
         html { scroll-behavior: smooth; }
       `}} />
-
-      <HomeNav />
 
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-20">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-          {/* Left Side - Auth Section */}
           <div className="order-2 lg:order-1">
             <AuthSection />
           </div>
-
-          {/* Right Side - Hero Visual */}
           <div className="order-1 lg:order-2">
             <div className="relative w-full max-w-4xl mx-auto h-[400px] sm:h-[500px] lg:h-[700px]">
-              {/* Soft gradient background - blue to white */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-100/40 via-blue-50/20 to-transparent"></div>
-
-              {/* Scattered sparkle dots */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 {[...Array(25)].map((_, i) => (
                   <div
@@ -96,29 +80,19 @@ export default function HomeHero() {
                       animation: `pulse ${2 + Math.random() * 3}s ease-in-out infinite`,
                       animationDelay: `${Math.random() * 2}s`
                     }}
-                  ></div>
+                  />
                 ))}
               </div>
-
               <div className="relative w-full h-full flex flex-col items-center justify-start pt-16 sm:pt-24 lg:pt-32 px-4 sm:px-8">
-                {/* Large Owtra heading */}
                 <h1 className="text-6xl sm:text-7xl lg:text-8xl xl:text-9xl font-bold text-slate-800/90 mb-4 sm:mb-6 tracking-tight text-center">
                   Owtra
                 </h1>
-
-                {/* Subtitle */}
                 <p className="text-lg sm:text-xl lg:text-2xl text-slate-600/80 font-normal max-w-2xl leading-relaxed mb-12 sm:mb-16 text-center px-4">
                   Smart tracking and insights for every job application.
                 </p>
-
-                {/* Floating Dashboard Cards - positioned lower and to the left */}
                 <div className="relative w-full max-w-md lg:max-w-xl">
-
-                  {/* Applied Card - top left, semi-transparent */}
                   <div className="absolute left-0 top-0 bg-white/70 backdrop-blur-md rounded-xl shadow-lg p-4 w-48 sm:w-56 border border-white/40 z-10">
-                    <div className="bg-blue-100/80 text-blue-600 px-3 py-1 rounded-lg text-xs font-medium inline-block mb-3">
-                      Applied
-                    </div>
+                    <div className="bg-blue-100/80 text-blue-600 px-3 py-1 rounded-lg text-xs font-medium inline-block mb-3">Applied</div>
                     <div className="flex items-center gap-2 text-slate-400/70">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
@@ -126,66 +100,45 @@ export default function HomeHero() {
                       <span className="text-sm">Company name</span>
                     </div>
                   </div>
-
-                  {/* Referral Card - below Applied, offset */}
                   <div className="absolute left-0 top-24 bg-white/60 backdrop-blur-md rounded-xl shadow-lg p-4 w-40 sm:w-48 border border-white/30">
-                    <div className="bg-slate-100/80 text-slate-600 px-3 py-1 rounded-lg text-xs font-medium inline-block">
-                      Referral
-                    </div>
+                    <div className="bg-slate-100/80 text-slate-600 px-3 py-1 rounded-lg text-xs font-medium inline-block">Referral</div>
                   </div>
-
-                  {/* Calendar/Dashboard Card - right side, larger */}
                   <div className="absolute right-0 top-12 bg-white/50 backdrop-blur-md rounded-2xl shadow-xl p-5 sm:p-6 w-72 sm:w-80 lg:w-96 border border-white/30">
-
-                    {/* Mini calendar header numbers */}
                     <div className="grid grid-cols-7 gap-1 mb-2 text-center">
                       {['27', '28', '24', '25', '26', '', ''].map((num, i) => (
-                        <div key={i} className="text-[10px] text-slate-400/60 font-medium">
-                          {num}
-                        </div>
+                        <div key={i} className="text-[10px] text-slate-400/60 font-medium">{num}</div>
                       ))}
                     </div>
-
-                    {/* Calendar dates with colored pills */}
                     <div className="grid grid-cols-7 gap-1.5 mb-4">
                       {[
-                        { day: '27', bg: '' },
-                        { day: '28', bg: '' },
-                        { day: '29', bg: 'bg-blue-500' },
-                        { day: '30', bg: '' },
-                        { day: '31', bg: 'bg-emerald-400' },
-                        { day: '1', bg: 'bg-blue-300' },
+                        { day: '27', bg: '' }, { day: '28', bg: '' },
+                        { day: '29', bg: 'bg-blue-500' }, { day: '30', bg: '' },
+                        { day: '31', bg: 'bg-emerald-400' }, { day: '1', bg: 'bg-blue-300' },
                         { day: '2', bg: '' }
                       ].map((item, i) => (
                         <div key={i} className="flex justify-center">
-                          <div className={`w-7 h-7 flex items-center justify-center text-xs rounded-lg ${item.bg ? `${item.bg} text-white font-medium` : 'text-slate-500/60'
-                            }`}>
+                          <div className={`w-7 h-7 flex items-center justify-center text-xs rounded-lg ${item.bg ? `${item.bg} text-white font-medium` : 'text-slate-500/60'}`}>
                             {item.day}
                           </div>
                         </div>
                       ))}
                     </div>
-
-                    {/* Event indicator bars */}
                     <div className="space-y-2 mt-4">
                       <div className="flex items-center gap-1.5">
-                        <div className="h-1.5 bg-blue-400/70 rounded-full" style={{ width: '35%' }}></div>
-                        <div className="h-1.5 bg-slate-300/40 rounded-full" style={{ width: '25%' }}></div>
+                        <div className="h-1.5 bg-blue-400/70 rounded-full" style={{ width: '35%' }} />
+                        <div className="h-1.5 bg-slate-300/40 rounded-full" style={{ width: '25%' }} />
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="h-1.5 bg-orange-300/70 rounded-full" style={{ width: '28%' }}></div>
-                        <div className="h-1.5 bg-slate-300/40 rounded-full" style={{ width: '20%' }}></div>
+                        <div className="h-1.5 bg-orange-300/70 rounded-full" style={{ width: '28%' }} />
+                        <div className="h-1.5 bg-slate-300/40 rounded-full" style={{ width: '20%' }} />
                       </div>
                     </div>
-
-                    {/* Small dots in background */}
                     <div className="absolute top-3 right-3 flex gap-1.5 opacity-30">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                     </div>
                   </div>
-
                 </div>
               </div>
             </div>
@@ -197,14 +150,9 @@ export default function HomeHero() {
       <div id="features" className="bg-gradient-to-br from-primary/5 via-accent/5 to-primary/3 py-12 sm:py-16 lg:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">
-              Everything you need to succeed
-            </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">
-              Track, analyze, and land your perfect role with powerful tools designed for modern job seekers
-            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">Everything you need to succeed</h2>
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">Track, analyze, and land your perfect role with powerful tools designed for modern job seekers</p>
           </div>
-
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             <FeatureCard icon={<Target className="w-6 h-6 sm:w-8 sm:h-8" />} title="Smart Matching" description="See how well you match the role, understand the company, and predict response chances, before or after applying." color="primary" />
             <FeatureCard icon={<BarChart3 className="w-6 h-6 sm:w-8 sm:h-8" />} title="Organized Tracking" description="Centralize your applications, contacts, and company research in a dashboard tailored to your job-search style." color="accent" />
@@ -220,25 +168,19 @@ export default function HomeHero() {
       <div id="about" className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">
-              About Owtra
-            </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
-              We're on a mission to make job searching less overwhelming and more successful
-            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">About Owtra</h2>
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">We're on a mission to make job searching less overwhelming and more successful</p>
           </div>
-
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center mb-12 sm:mb-16">
             <div className="space-y-4 sm:space-y-6">
               <h3 className="text-2xl sm:text-3xl font-bold text-foreground">Our Story</h3>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-                Owtra was born from the frustration of managing dozens of job applications on spreedsheets. We realized that job seekers needed a centralized, intelligent system to track their journey and maximize their chances of success.
+                Owtra was born from the frustration of managing dozens of job applications on spreadsheets. We realized that job seekers needed a centralized, intelligent system to track their journey and maximize their chances of success.
               </p>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
                 Today, we help thousands of professionals organize their job search, discover better opportunities, and land roles at companies they love. Our AI-powered platform learns from successful job searches to give you personalized insights and recommendations.
               </p>
             </div>
-
             <div className="grid grid-cols-2 gap-4 sm:gap-6">
               <StatCard icon={<Users className="w-6 h-6 sm:w-8 sm:h-8" />} value="10K+" label="Active Users" />
               <StatCard icon={<Award className="w-6 h-6 sm:w-8 sm:h-8" />} value="50K+" label="Jobs Tracked" />
@@ -246,7 +188,6 @@ export default function HomeHero() {
               <StatCard icon={<Shield className="w-6 h-6 sm:w-8 sm:h-8" />} value="99.9%" label="Uptime" />
             </div>
           </div>
-
           <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-12 text-center">
             <h3 className="text-2xl sm:text-3xl font-bold text-foreground mb-3 sm:mb-4">Our Values</h3>
             <div className="grid sm:grid-cols-3 gap-6 sm:gap-8 mt-6 sm:mt-8">
@@ -262,14 +203,9 @@ export default function HomeHero() {
       <div id="pricing" className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12 lg:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">
-              Simple, transparent pricing
-            </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">
-              Start free, upgrade when you're ready to go unlimited
-            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">Simple, transparent pricing</h2>
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">Start free, upgrade when you're ready to go unlimited</p>
           </div>
-
           <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {/* Free Tier */}
             <div className="bg-card rounded-2xl sm:rounded-3xl border-2 border-border p-6 sm:p-8 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
@@ -281,7 +217,6 @@ export default function HomeHero() {
                 </div>
                 <p className="text-sm sm:text-base text-muted-foreground">Perfect for getting started</p>
               </div>
-
               <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                 <BenefitItem text="Track up to 10 applications" />
                 <BenefitItem text="AI job fit analysis" />
@@ -289,22 +224,18 @@ export default function HomeHero() {
                 <BenefitItem text="Interview prep questions" />
                 <BenefitItem text="Delete after 30 days only" muted />
               </ul>
-
               <button onClick={handleFreeClick} className="w-full py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border-2 border-border text-foreground font-semibold hover:bg-muted transition-all duration-300">
                 Get Started Free
               </button>
             </div>
 
-            {/* Premium Tier with Toggle */}
+            {/* Premium Tier */}
             <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl sm:rounded-3xl border-2 border-primary p-6 sm:p-8 hover:shadow-2xl transition-all duration-300 relative overflow-hidden animate-float">
               <div className="absolute top-4 sm:top-6 right-4 sm:right-6 bg-secondary text-primary-foreground px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-semibold">
                 Recommended
               </div>
-
               <div className="mb-6">
                 <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-4">Premium</h3>
-
-                {/* Billing Toggle */}
                 <div className="inline-flex items-center bg-muted rounded-full p-1 gap-1 mb-4">
                   <button
                     onClick={() => setBillingCycle('monthly')}
@@ -319,7 +250,6 @@ export default function HomeHero() {
                     Yearly <span className="text-[10px] sm:text-xs text-primary ml-1">-20%</span>
                   </button>
                 </div>
-
                 <div className="flex items-baseline mb-2">
                   <span className="text-4xl sm:text-5xl font-bold text-foreground">
                     ${billingCycle === 'monthly' ? '18' : '183'}
@@ -331,7 +261,6 @@ export default function HomeHero() {
                 )}
                 <p className="text-sm sm:text-base text-muted-foreground">For serious job seekers</p>
               </div>
-
               <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                 <BenefitItem text="200 Applications" premium />
                 <BenefitItem text="All AI features unlocked" premium />
@@ -340,7 +269,6 @@ export default function HomeHero() {
                 <BenefitItem text="Instant delete anytime" premium />
                 <BenefitItem text="Application analytics" premium />
               </ul>
-
               <button onClick={handleUpgradeClick} className="w-full py-2.5 sm:py-3 text-sm sm:text-base rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl">
                 {billingCycle === 'monthly' ? 'Start With Premium' : 'Get Yearly Plan'}
               </button>
@@ -353,130 +281,33 @@ export default function HomeHero() {
       <div id="faq" className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-primary/5 via-accent/5 to-primary/3">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12 lg:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">
-              Everything you need to know about Owtra
-            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">Frequently Asked Questions</h2>
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">Everything you need to know about Owtra</p>
           </div>
-
           <div className="space-y-4">
-            <FaqItem
-              question="How does the free plan work?"
-              answer="The free plan allows you to track up to 10 applications with full access to AI job fit analysis, company insights, and interview prep. It's perfect for testing out Owtra or if you're just starting your job search."
-              isOpen={openFaq === 0}
-              onClick={() => toggleFaq(0)}
-            />
-            <FaqItem
-              question="Can I upgrade or downgrade anytime?"
-              answer="Absolutely! You can upgrade to Premium or Pro at any time, and your new features will be available immediately. If you downgrade, you'll keep your premium features until the end of your billing cycle."
-              isOpen={openFaq === 1}
-              onClick={() => toggleFaq(1)}
-            />
-            <FaqItem
-              question="What happens to my data if I cancel?"
-              answer="Your data is always yours. If you cancel, you can export all your data at any time. Free users have 30 days to export before deletion, while Premium and Pro users can export anytime and delete instantly."
-              isOpen={openFaq === 2}
-              onClick={() => toggleFaq(2)}
-            />
-            <FaqItem
-              question="How does the AI matching work?"
-              answer="Our AI analyzes job descriptions, company data, and your preferences to calculate fit scores. It looks at culture alignment, growth stage, tech stack, team size, and more to help you prioritize opportunities that match your goals."
-              isOpen={openFaq === 3}
-              onClick={() => toggleFaq(3)}
-            />
-            <FaqItem
-              question="Is my data secure and private?"
-              answer="Yes! We use industry-standard encryption, never sell your data, and give you full control over your information. Your job search details are private and only accessible to you."
-              isOpen={openFaq === 4}
-              onClick={() => toggleFaq(4)}
-            />
-            <FaqItem
-              question="Do you offer refunds?"
-              answer="Yes, we offer a 14-day money-back guarantee on all paid plans. If you're not satisfied for any reason, just contact us and we'll process a full refund."
-              isOpen={openFaq === 5}
-              onClick={() => toggleFaq(5)}
-            />
+            <FaqItem question="How does the free plan work?" answer="The free plan allows you to track up to 10 applications with full access to AI job fit analysis, company insights, and interview prep. It's perfect for testing out Owtra or if you're just starting your job search." isOpen={openFaq === 0} onClick={() => toggleFaq(0)} />
+            <FaqItem question="Can I upgrade or downgrade anytime?" answer="Absolutely! You can upgrade to Premium at any time, and your new features will be available immediately. If you downgrade, you'll keep your premium features until the end of your billing cycle." isOpen={openFaq === 1} onClick={() => toggleFaq(1)} />
+            <FaqItem question="What happens to my data if I cancel?" answer="Your data is always yours. If you cancel, you can export all your data at any time. Free users have 30 days to export before deletion, while Premium users can export anytime and delete instantly." isOpen={openFaq === 2} onClick={() => toggleFaq(2)} />
+            <FaqItem question="How does the AI matching work?" answer="Our AI analyzes job descriptions, company data, and your preferences to calculate fit scores. It looks at culture alignment, growth stage, tech stack, team size, and more to help you prioritize opportunities that match your goals." isOpen={openFaq === 3} onClick={() => toggleFaq(3)} />
+            <FaqItem question="Is my data secure and private?" answer="Yes! We use industry-standard encryption, never sell your data, and give you full control over your information. Your job search details are private and only accessible to you." isOpen={openFaq === 4} onClick={() => toggleFaq(4)} />
+            <FaqItem question="Do you offer refunds?" answer="Yes, we offer a 14-day money-back guarantee on all paid plans. If you're not satisfied for any reason, just contact us and we'll process a full refund." isOpen={openFaq === 5} onClick={() => toggleFaq(5)} />
           </div>
         </div>
       </div>
 
-      {/* Testimonials Section */}
-      <div id="testimonials" className="py-12 sm:py-16 lg:py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">
-              Loved by job seekers
-            </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">
-              Join thousands who transformed their job search with Owtra
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            <TestimonialCard quote="Owtra helped me organize 50+ applications and land my dream role at a Series B startup. The AI matching feature showed me companies I never would have discovered on my own!" author="Sarah M." role="Software Engineer" />
-            <TestimonialCard quote="Finally, a tool that understands what I'm looking for in company culture and growth stage. The automated company research saved me literally hours every week." author="James K." role="Product Manager" />
-            <TestimonialCard quote="I went from scattered spreadsheets to a streamlined process. Never missed a follow-up again and my response rate doubled. This tool paid for itself 10x over." author="Emily R." role="Marketing Lead" />
-          </div>
-        </div>
-      </div>
+      {/* Reviews — dynamic from DB */}
+      <ReviewsSection />
 
       {/* CTA Section */}
       <div className="bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 py-12 sm:py-16 lg:py-20">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">
-            Ready to find your way?
-          </h2>
-          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-8">
-            Join thousands of job seekers who found their perfect role with Owtra
-          </p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4">Ready to find your way?</h2>
+          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-8">Join thousands of job seekers who found their perfect role with Owtra</p>
           <button onClick={handleFreeClick} className="bg-primary text-primary-foreground hover:opacity-90 px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold transition-opacity">
             Get Started Free
           </button>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-card text-card-foreground py-8 sm:py-12 border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-            <div className="col-span-2 md:col-span-1">
-              <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">Owtra</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Find your way to the perfect role
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base text-foreground">Product</h4>
-              <ul className="space-y-2 text-sm sm:text-base text-muted-foreground">
-                <li><a href="#features" className="hover:text-primary transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-primary transition-colors">Pricing</a></li>
-                <li><a href="#faq" className="hover:text-primary transition-colors">FAQ</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base text-foreground">Company</h4>
-              <ul className="space-y-2 text-sm sm:text-base text-muted-foreground">
-                <li><a href="#about" className="hover:text-primary transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Careers</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base text-foreground">Legal</h4>
-              <ul className="space-y-2 text-sm sm:text-base text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Terms</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Contact</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-border mt-6 sm:mt-8 pt-6 sm:pt-8 text-center text-sm sm:text-base text-muted-foreground">
-            <p>&copy; 2025 Owtra. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }
@@ -487,7 +318,6 @@ function FeatureCard({ icon, title, description, color }: { icon: React.ReactNod
     accent: 'bg-accent/10 text-accent-foreground border-accent/20 hover:border-accent/40',
     secondary: 'bg-secondary/10 text-secondary border-secondary/20 hover:border-secondary/40'
   }
-
   return (
     <div className="bg-card p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-border hover:shadow-lg transition-all group">
       <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 transition-all duration-300 ${colorClasses[color]} group-hover:scale-110`}>
@@ -514,19 +344,6 @@ function ValueCard({ title, description }: { title: string; description: string 
     <div>
       <h4 className="text-lg sm:text-xl font-semibold text-foreground mb-2">{title}</h4>
       <p className="text-sm sm:text-base text-muted-foreground">{description}</p>
-    </div>
-  )
-}
-
-function TestimonialCard({ quote, author, role }: { quote: string; author: string; role: string }) {
-  return (
-    <div className="bg-card p-6 sm:p-8 rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow">
-      <div className="text-primary text-3xl sm:text-4xl mb-3 sm:mb-4 font-serif">"</div>
-      <p className="text-sm sm:text-base text-card-foreground mb-4 sm:mb-6 italic">{quote}</p>
-      <div>
-        <p className="font-semibold text-sm sm:text-base text-foreground">{author}</p>
-        <p className="text-xs sm:text-sm text-muted-foreground">{role}</p>
-      </div>
     </div>
   )
 }

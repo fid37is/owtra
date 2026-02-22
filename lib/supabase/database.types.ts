@@ -233,6 +233,39 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_submissions: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          status: string | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       deletion_log: {
         Row: {
           application_id: string
@@ -432,6 +465,39 @@ export type Database = {
           top_values?: Json | null
           updated_at?: string | null
           work_location_preference?: string | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          approved: boolean | null
+          created_at: string | null
+          id: string
+          name: string
+          quote: string
+          rating: number
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved?: boolean | null
+          created_at?: string | null
+          id?: string
+          name: string
+          quote: string
+          rating: number
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved?: boolean | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          quote?: string
+          rating?: number
+          role?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
