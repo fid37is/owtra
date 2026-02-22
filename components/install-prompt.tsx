@@ -71,9 +71,9 @@ export default function InstallPrompt() {
           <Download className="w-5 h-5 text-blue-600" />
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900">Install Viam</h3>
+          <h3 className="font-semibold text-gray-900">Install Owtra</h3>
           <p className="text-sm text-gray-600 mt-1">
-            Install Viam on your device for quick access and offline support
+            Install Owtra on your device for quick access and offline support
           </p>
           <div className="mt-3 flex space-x-2">
             <Button onClick={handleInstall} size="sm">
