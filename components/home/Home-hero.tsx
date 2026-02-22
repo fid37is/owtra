@@ -287,8 +287,6 @@ export default function HomeHero() {
                 <BenefitItem text="AI job fit analysis" />
                 <BenefitItem text="Company research & insights" />
                 <BenefitItem text="Interview prep questions" />
-                <BenefitItem text="Application status tracking" />
-                <BenefitItem text="Smart notifications" />
                 <BenefitItem text="Delete after 30 days only" muted />
               </ul>
 
@@ -324,24 +322,23 @@ export default function HomeHero() {
 
                 <div className="flex items-baseline mb-2">
                   <span className="text-4xl sm:text-5xl font-bold text-foreground">
-                    ${billingCycle === 'monthly' ? '12' : '115'}
+                    ${billingCycle === 'monthly' ? '18' : '183'}
                   </span>
                   <span className="text-muted-foreground ml-2">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
                 </div>
                 {billingCycle === 'yearly' && (
-                  <p className="text-xs sm:text-sm text-primary font-semibold mb-2">Save $29/year (20% off)</p>
+                  <p className="text-xs sm:text-sm text-primary font-semibold mb-2">Save $32/year (15% off)</p>
                 )}
                 <p className="text-sm sm:text-base text-muted-foreground">For serious job seekers</p>
               </div>
 
               <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-                <BenefitItem text="Unlimited applications" premium />
+                <BenefitItem text="200 Applications" premium />
                 <BenefitItem text="All AI features unlocked" premium />
                 <BenefitItem text="Advanced company insights" premium />
-                <BenefitItem text="Priority interview prep" premium />
+                <BenefitItem text="Interview prep" premium />
                 <BenefitItem text="Instant delete anytime" premium />
                 <BenefitItem text="Application analytics" premium />
-                <BenefitItem text="Export & backup data" premium />
               </ul>
 
               <button onClick={handleUpgradeClick} className="w-full py-2.5 sm:py-3 text-sm sm:text-base rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl">
