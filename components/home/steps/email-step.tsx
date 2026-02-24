@@ -52,8 +52,12 @@ export default function EmailStep({
 
       // data will be true if email exists, false if it doesn't
       if (data) {
-        // User exists - extract name from email
-        const userName = email.split('@')[0]
+        // Fetch first name via RPC to bypass RLS
+        const { data: firstName } = await supabase.rpc('get_user_first_name', {
+          p_email: email,
+        })
+
+        const userName = firstName || email.split('@')[0]
         onExistingUser?.(userName)
       } else {
         // New user

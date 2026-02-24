@@ -12,6 +12,7 @@ function ReactivateContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const supabase = createClient()
 
   const email = searchParams.get('email')
@@ -20,20 +21,38 @@ function ReactivateContent() {
   const handleReactivate = async () => {
     setLoading(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email!, {
-        redirectTo: `${window.location.origin}/auth/callback?type=reactivate`,
-      })
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No authenticated user found')
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          account_status: 'active',
+          deletion_scheduled_at: null 
+        })
+        .eq('id', user.id)
 
       if (error) throw error
 
-      toast.success('Verification email sent! Check your inbox to confirm reactivation.')
-      
+      toast.success('Account reactivated successfully!')
+
       setTimeout(() => {
-        router.push('/')
-      }, 2000)
+        router.push('/dashboard')
+      }, 1500)
     } catch (err: any) {
-      toast.error(err.message || 'Failed to send reactivation email')
+      toast.error(err.message || 'Failed to reactivate account')
       setLoading(false)
+    }
+  }
+
+  const handleCancel = async () => {
+    setCancelling(true)
+    try {
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (err: any) {
+      toast.error('Something went wrong. Please try again.')
+      setCancelling(false)
     }
   }
 
@@ -61,9 +80,9 @@ function ReactivateContent() {
         <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-4">
           {status === 'hibernated' ? 'Account Hibernated' : 'Account Deleted'}
         </h1>
-        
+
         <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-          {status === 'hibernated' 
+          {status === 'hibernated'
             ? 'Your account is currently hibernated. Would you like to reactivate it?'
             : 'Your account is scheduled for deletion. You can still reactivate it within the grace period.'}
         </p>
@@ -75,7 +94,7 @@ function ReactivateContent() {
         <div className="flex flex-col gap-3">
           <Button
             onClick={handleReactivate}
-            disabled={loading}
+            disabled={loading || cancelling}
             className="w-full h-10 sm:h-12 bg-primary text-primary-foreground font-semibold rounded-lg sm:rounded-xl text-xs sm:text-base"
           >
             {loading ? (
@@ -84,14 +103,18 @@ function ReactivateContent() {
               'Reactivate Account'
             )}
           </Button>
-          
+
           <Button
-            onClick={() => router.push('/')}
+            onClick={handleCancel}
             variant="outline"
             className="w-full h-10 sm:h-12 rounded-lg sm:rounded-xl text-xs sm:text-base font-semibold"
-            disabled={loading}
+            disabled={loading || cancelling}
           >
-            Cancel
+            {cancelling ? (
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+            ) : (
+              'Cancel'
+            )}
           </Button>
         </div>
       </div>

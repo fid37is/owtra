@@ -2,7 +2,7 @@
 
 import AuthSection from './auth-section'
 import { Target, BarChart3, Bell, Search, TrendingUp, Zap, Check, Users, Award, Clock, Shield, ChevronDown } from 'lucide-react'
-import ReviewsSection from './reviews-section'
+import ReviewsSection from '../reviews-section'
 import { useState } from 'react'
 
 export default function HomeHero() {
@@ -40,6 +40,35 @@ export default function HomeHero() {
     setOpenFaq(openFaq === index ? null : index)
   }
 
+  // Deterministic sparkle positions — avoids hydration mismatch from Math.random()
+  const sparkles = [
+    { w: 3, h: 3, l: 8, t: 12, o: 0.5, d: 0 },
+    { w: 4, h: 4, l: 23, t: 45, o: 0.6, d: 0.5 },
+    { w: 2, h: 2, l: 67, t: 7, o: 0.4, d: 1 },
+    { w: 3, h: 3, l: 81, t: 33, o: 0.7, d: 1.5 },
+    { w: 4, h: 4, l: 15, t: 71, o: 0.5, d: 0 },
+    { w: 2, h: 2, l: 92, t: 58, o: 0.6, d: 0.5 },
+    { w: 3, h: 3, l: 41, t: 89, o: 0.4, d: 1 },
+    { w: 4, h: 4, l: 56, t: 22, o: 0.5, d: 1.5 },
+    { w: 2, h: 2, l: 73, t: 76, o: 0.7, d: 0 },
+    { w: 3, h: 3, l: 34, t: 54, o: 0.4, d: 0.5 },
+    { w: 4, h: 4, l: 5, t: 38, o: 0.6, d: 1 },
+    { w: 2, h: 2, l: 88, t: 14, o: 0.5, d: 1.5 },
+    { w: 3, h: 3, l: 62, t: 93, o: 0.4, d: 0 },
+    { w: 4, h: 4, l: 47, t: 67, o: 0.7, d: 0.5 },
+    { w: 2, h: 2, l: 19, t: 82, o: 0.5, d: 1 },
+    { w: 3, h: 3, l: 76, t: 41, o: 0.6, d: 1.5 },
+    { w: 4, h: 4, l: 31, t: 18, o: 0.4, d: 0 },
+    { w: 2, h: 2, l: 95, t: 85, o: 0.5, d: 0.5 },
+    { w: 3, h: 3, l: 53, t: 29, o: 0.7, d: 1 },
+    { w: 4, h: 4, l: 11, t: 62, o: 0.4, d: 1.5 },
+    { w: 2, h: 2, l: 84, t: 4, o: 0.6, d: 0 },
+    { w: 3, h: 3, l: 28, t: 97, o: 0.5, d: 0.5 },
+    { w: 4, h: 4, l: 69, t: 51, o: 0.4, d: 1 },
+    { w: 2, h: 2, l: 44, t: 35, o: 0.7, d: 1.5 },
+    { w: 3, h: 3, l: 97, t: 72, o: 0.5, d: 0 },
+  ]
+
   return (
     <div className="bg-background">
       <style dangerouslySetInnerHTML={{
@@ -64,81 +93,114 @@ export default function HomeHero() {
             <AuthSection />
           </div>
           <div className="order-1 lg:order-2">
-            <div className="relative w-full max-w-4xl mx-auto h-[400px] sm:h-[500px] lg:h-[700px]">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-100/40 via-blue-50/20 to-transparent"></div>
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {[...Array(25)].map((_, i) => (
+            <div className="relative w-full max-w-4xl mx-auto h-[360px] sm:h-[500px] lg:h-[700px]">
+
+              <div className="absolute inset-0 rounded-2xl" />
+              {/* Sparkle dots — was bg-white/60, now theme-aware; was Math.random(), now deterministic */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+                {sparkles.map((s, i) => (
                   <div
                     key={i}
-                    className="absolute rounded-full bg-white/60"
+                    className="absolute rounded-full bg-foreground/20"
                     style={{
-                      width: `${2 + Math.random() * 3}px`,
-                      height: `${2 + Math.random() * 3}px`,
-                      left: `${Math.random() * 100}%`,
-                      top: `${Math.random() * 100}%`,
-                      opacity: 0.4 + Math.random() * 0.4,
-                      animation: `pulse ${2 + Math.random() * 3}s ease-in-out infinite`,
-                      animationDelay: `${Math.random() * 2}s`
+                      width: `${s.w}px`,
+                      height: `${s.h}px`,
+                      left: `${s.l}%`,
+                      top: `${s.t}%`,
+                      opacity: s.o,
+                      animation: `pulse ${2 + (i % 3)}s ease-in-out infinite`,
+                      animationDelay: `${s.d}s`,
                     }}
                   />
                 ))}
               </div>
-              <div className="relative w-full h-full flex flex-col items-center justify-start pt-16 sm:pt-24 lg:pt-32 px-4 sm:px-8">
-                <h1 className="text-6xl sm:text-7xl lg:text-8xl xl:text-9xl font-bold text-slate-800/90 mb-4 sm:mb-6 tracking-tight text-center">
+
+              <div className="relative w-full h-full flex flex-col items-center justify-start pt-10 sm:pt-24 lg:pt-32 px-4 sm:px-8">
+
+                {/* Heading — was text-slate-800/90, now theme-aware */}
+                <h1 className="text-6xl sm:text-7xl lg:text-8xl xl:text-9xl font-bold text-foreground/80 mb-4 sm:mb-6 tracking-tight text-center">
                   Owtra
                 </h1>
-                <p className="text-lg sm:text-xl lg:text-2xl text-slate-600/80 font-normal max-w-2xl leading-relaxed mb-12 sm:mb-16 text-center px-4">
+
+                {/* Subtitle — was text-slate-600/80, now theme-aware */}
+                <p className="text-base sm:text-xl lg:text-2xl text-muted-foreground font-normal max-w-2xl leading-relaxed mb-8 sm:mb-16 text-center px-4">
                   Smart tracking and insights for every job application.
                 </p>
-                <div className="relative w-full max-w-md lg:max-w-xl">
-                  <div className="absolute left-0 top-0 bg-white/70 backdrop-blur-md rounded-xl shadow-lg p-4 w-48 sm:w-56 border border-white/40 z-10">
-                    <div className="bg-blue-100/80 text-blue-600 px-3 py-1 rounded-lg text-xs font-medium inline-block mb-3">Applied</div>
-                    <div className="flex items-center gap-2 text-slate-400/70">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+
+                {/* Floating cards container — tighter max-width on mobile to prevent overflow */}
+                <div className="relative w-full max-w-[260px] sm:max-w-md lg:max-w-xl h-40 sm:h-44">
+
+                  {/* Applied card — was bg-white/70 border-white/40, now theme-aware */}
+                  <div className="absolute left-0 top-0 bg-card/80 backdrop-blur-md rounded-xl shadow-lg p-3 sm:p-4 w-36 sm:w-48 border border-border z-10">
+                    {/* Badge — was bg-blue-100/80 text-blue-600, now theme-aware */}
+                    <div className="bg-primary/10 text-primary px-2 sm:px-3 py-1 rounded-lg text-xs font-medium inline-block mb-2 sm:mb-3">
+                      Applied
+                    </div>
+                    {/* Text — was text-slate-400/70, now theme-aware */}
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                       </svg>
-                      <span className="text-sm">Company name</span>
+                      <span className="text-xs sm:text-sm">Company name</span>
                     </div>
                   </div>
-                  <div className="absolute left-0 top-24 bg-white/60 backdrop-blur-md rounded-xl shadow-lg p-4 w-40 sm:w-48 border border-white/30">
-                    <div className="bg-slate-100/80 text-slate-600 px-3 py-1 rounded-lg text-xs font-medium inline-block">Referral</div>
+
+                  {/* Referral card — was bg-white/60 border-white/30, now theme-aware */}
+                  <div className="absolute left-0 top-16 sm:top-20 bg-card/70 backdrop-blur-md rounded-xl shadow-lg p-3 sm:p-4 w-28 sm:w-40 border border-border">
+                    {/* Badge — was bg-slate-100/80 text-slate-600, now theme-aware */}
+                    <div className="bg-muted text-muted-foreground px-2 sm:px-3 py-1 rounded-lg text-xs font-medium inline-block">
+                      Referral
+                    </div>
                   </div>
-                  <div className="absolute right-0 top-12 bg-white/50 backdrop-blur-md rounded-2xl shadow-xl p-5 sm:p-6 w-72 sm:w-80 lg:w-96 border border-white/30">
-                    <div className="grid grid-cols-7 gap-1 mb-2 text-center">
+
+                  {/* Calendar card — was bg-white/50 border-white/30 w-72 sm:w-80 lg:w-96 (overflowed on mobile)
+                      now theme-aware and capped at w-40 sm:w-64 lg:w-80 */}
+                  <div className="absolute right-0 top-4 sm:top-8 bg-card/70 backdrop-blur-md rounded-2xl shadow-xl p-3 sm:p-5 sm:p-6 w-40 sm:w-64 lg:w-80 border border-border">
+                    {/* Calendar header — was text-slate-400/60, now theme-aware */}
+                    <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2 text-center">
                       {['27', '28', '24', '25', '26', '', ''].map((num, i) => (
-                        <div key={i} className="text-[10px] text-slate-400/60 font-medium">{num}</div>
+                        <div key={i} className="text-[8px] sm:text-[10px] text-muted-foreground/60 font-medium">{num}</div>
                       ))}
                     </div>
-                    <div className="grid grid-cols-7 gap-1.5 mb-4">
+                    {/* Calendar days — was bg-blue-500, bg-emerald-400, bg-blue-300 hardcoded
+                        now bg-primary, bg-emerald-400 (kept), bg-primary/30 */}
+                    <div className="grid grid-cols-7 gap-0.5 sm:gap-1.5 mb-2 sm:mb-4">
                       {[
                         { day: '27', bg: '' }, { day: '28', bg: '' },
-                        { day: '29', bg: 'bg-blue-500' }, { day: '30', bg: '' },
-                        { day: '31', bg: 'bg-emerald-400' }, { day: '1', bg: 'bg-blue-300' },
+                        { day: '29', bg: 'primary' }, { day: '30', bg: '' },
+                        { day: '31', bg: 'emerald' }, { day: '1', bg: 'primary-soft' },
                         { day: '2', bg: '' }
                       ].map((item, i) => (
                         <div key={i} className="flex justify-center">
-                          <div className={`w-7 h-7 flex items-center justify-center text-xs rounded-lg ${item.bg ? `${item.bg} text-white font-medium` : 'text-slate-500/60'}`}>
+                          <div className={`w-4 h-4 sm:w-7 sm:h-7 flex items-center justify-center text-[8px] sm:text-xs rounded-md sm:rounded-lg font-medium
+                            ${item.bg === 'primary' ? 'bg-primary text-primary-foreground' :
+                              item.bg === 'emerald' ? 'bg-emerald-400 text-white' :
+                                item.bg === 'primary-soft' ? 'bg-primary/30 text-primary' :
+                                  'text-muted-foreground/60'}`}>
                             {item.day}
                           </div>
                         </div>
                       ))}
                     </div>
-                    <div className="space-y-2 mt-4">
-                      <div className="flex items-center gap-1.5">
-                        <div className="h-1.5 bg-blue-400/70 rounded-full" style={{ width: '35%' }} />
-                        <div className="h-1.5 bg-slate-300/40 rounded-full" style={{ width: '25%' }} />
+                    {/* Activity bars — was bg-blue-400/70 bg-slate-300/40 bg-orange-300/70, now theme-aware */}
+                    <div className="space-y-1 sm:space-y-2 mt-1 sm:mt-4">
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        <div className="h-1 sm:h-1.5 bg-primary/70 rounded-full" style={{ width: '35%' }} />
+                        <div className="h-1 sm:h-1.5 bg-border rounded-full" style={{ width: '25%' }} />
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="h-1.5 bg-orange-300/70 rounded-full" style={{ width: '28%' }} />
-                        <div className="h-1.5 bg-slate-300/40 rounded-full" style={{ width: '20%' }} />
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        <div className="h-1 sm:h-1.5 bg-orange-300/70 rounded-full" style={{ width: '28%' }} />
+                        <div className="h-1 sm:h-1.5 bg-border rounded-full" style={{ width: '20%' }} />
                       </div>
                     </div>
-                    <div className="absolute top-3 right-3 flex gap-1.5 opacity-30">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                    {/* Dots — was bg-slate-400, now theme-aware */}
+                    <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex gap-1 sm:gap-1.5 opacity-30">
+                      <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-muted-foreground" />
+                      <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-muted-foreground" />
+                      <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-muted-foreground" />
                     </div>
                   </div>
+
                 </div>
               </div>
             </div>

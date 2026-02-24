@@ -43,7 +43,16 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('Auth callback error:', error)
-      return NextResponse.redirect(`${origin}/?error=auth_failed`)
+
+      // Supabase may have verified the user before the server crashed,
+      // consuming the token but failing to complete the redirect.
+      // If the user is already confirmed in the DB, continue normally
+      // instead of showing a confusing auth_failed error.
+      const { data: { user: existingUser } } = await supabase.auth.getUser()
+      if (!existingUser?.email_confirmed_at) {
+        return NextResponse.redirect(`${origin}/?error=auth_failed`)
+      }
+      // User is verified — fall through to post-auth logic below
     }
 
     // Get the authenticated user
@@ -51,7 +60,7 @@ export async function GET(request: Request) {
     
     if (user) {
       // Check if profile exists and account status
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('onboarding_completed, created_at, account_status, deletion_scheduled_at')
         .eq('id', user.id)
@@ -64,7 +73,6 @@ export async function GET(request: Request) {
 
       // Handle reactivation flow
       if (type === 'reactivate' && (profile?.account_status === 'hibernated' || profile?.account_status === 'deleted')) {
-        // Check if deleted account is within grace period
         if (profile?.account_status === 'deleted') {
           const deletionDate = new Date(profile.deletion_scheduled_at)
           if (new Date() > deletionDate) {
@@ -72,7 +80,6 @@ export async function GET(request: Request) {
           }
         }
 
-        // Reactivate the account
         await supabase
           .from('profiles')
           .update({
@@ -81,7 +88,6 @@ export async function GET(request: Request) {
           })
           .eq('id', user.id)
 
-        // Redirect to dashboard with reactivation flag
         return NextResponse.redirect(`${origin}/dashboard?reactivated=true`)
       }
 
@@ -92,30 +98,20 @@ export async function GET(request: Request) {
         )
       }
 
-      // Check subscription intent
       const hasSubscriptionIntent = user.user_metadata?.intent_upgrade || redirectParam === '/subscription'
-
-      // FIXED: Check if user needs onboarding based on profile completion status
-      // This handles both new users (Google SSO + Email/Password) and existing users who haven't completed onboarding
       const needsOnboarding = !profile || !profile.onboarding_completed
 
       if (needsOnboarding) {
-        // User needs to complete onboarding
         if (hasSubscriptionIntent) {
-          // Preserve subscription intent and add verified flag
           return NextResponse.redirect(`${origin}/onboarding?redirect=/subscription&verified=true`)
         }
-        // Regular onboarding flow with verified flag for both Google SSO and Email verification
         return NextResponse.redirect(`${origin}/onboarding?verified=true`)
       }
 
-      // Existing user with completed onboarding
       if (hasSubscriptionIntent) {
-        // Redirect to subscription page for upgrade intent
         return NextResponse.redirect(`${origin}/subscription`)
       }
 
-      // Default redirect to dashboard for returning users
       return NextResponse.redirect(`${origin}/dashboard`)
     }
   }

@@ -39,7 +39,6 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
   const [companySize, setCompanySize] = useState<string[]>([])
   const [industries, setIndustries] = useState<string[]>([])
 
-  // Show appropriate success toast on mount
   useEffect(() => {
     if (!toastShown && verified) {
       checkAuthMethodAndShowToast()
@@ -47,7 +46,6 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
     }
   }, [verified, toastShown])
 
-  // Show reactivation toast on mount if account was reactivated
   useEffect(() => {
     if (reactivated === 'true' && !toastShown) {
       toast.success('✅ Account reactivated! Welcome back.')
@@ -58,15 +56,11 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
   const checkAuthMethodAndShowToast = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      
       if (user) {
-        // Check if user signed in with Google (app_metadata contains provider info)
         const provider = user.app_metadata?.provider
-        
         if (provider === 'google') {
           toast.success('Signed in with Google successfully!')
         } else {
-          // Email/password verification
           toast.success('Email verified successfully!')
         }
       }
@@ -81,24 +75,17 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
 
   const canProceed = () => {
     switch (currentStep) {
-      case 'name':
-        return userName.trim().length > 0
-      case 'values':
-        return selectedValues.length >= 3
-      case 'deal-breakers':
-        return true
-      case 'work-preferences':
-        return workLocation !== ''
-      case 'company-preferences':
-        return true
-      default:
-        return false
+      case 'name': return userName.trim().length > 0
+      case 'values': return selectedValues.length >= 3
+      case 'deal-breakers': return true
+      case 'work-preferences': return workLocation !== ''
+      case 'company-preferences': return true
+      default: return false
     }
   }
 
   const handleNext = async () => {
     if (currentStep === 'name') {
-      // Save name before proceeding
       setLoading(true)
       try {
         const { error } = await supabase
@@ -107,7 +94,7 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
           .eq('id', user.id)
 
         if (error) throw error
-        
+
         if (currentStepIndex < steps.length - 1) {
           setCurrentStep(steps[currentStepIndex + 1])
         }
@@ -126,6 +113,20 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
   const handleBack = () => {
     if (currentStepIndex > 0) {
       setCurrentStep(steps[currentStepIndex - 1])
+    }
+  }
+
+  /** Fire welcome email without blocking navigation */
+  const triggerWelcomeEmail = async (email: string, name: string) => {
+    try {
+      await fetch('/api/send-notification-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'welcome', email, userName: name }),
+      })
+    } catch (err) {
+      // Silent — never block the user for an email failure
+      console.error('Welcome email failed:', err)
     }
   }
 
@@ -148,6 +149,11 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
       if (error) throw error
 
       toast.success('🎉 Registration complete! Welcome to Owtra')
+
+      // Send welcome email — fire and forget, don't await
+      if (user.email) {
+        triggerWelcomeEmail(user.email, userName || user.email)
+      }
 
       const destination = redirectAfter || '/dashboard'
       router.push(destination)
@@ -175,11 +181,11 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
             </h1>
           )}
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
-            {currentStep === 'name' 
-              ? 'Let\'s start with your name' 
-              : 'Let\'s personalize your job search experience'}
+            {currentStep === 'name'
+              ? "Let's start with your name"
+              : "Let's personalize your job search experience"}
           </p>
-          
+
           {redirectAfter === '/subscription' && currentStep !== 'name' && (
             <div className="mt-3 sm:mt-4 p-2 sm:p-3 md:p-4 bg-primary/5 rounded-lg sm:rounded-xl border border-primary/20">
               <p className="text-xs sm:text-xs md:text-sm text-foreground font-semibold">
@@ -210,33 +216,17 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
         {/* Steps Content Card */}
         <div className="w-full bg-card rounded-xl sm:rounded-2xl md:rounded-3xl shadow-lg p-4 sm:p-6 md:p-8 border border-border">
           {currentStep === 'name' && (
-            <NameStep
-              userName={userName}
-              onUserNameChange={setUserName}
-            />
+            <NameStep userName={userName} onUserNameChange={setUserName} />
           )}
-
           {currentStep === 'values' && (
-            <ValuesStep
-              selectedValues={selectedValues}
-              onValuesChange={setSelectedValues}
-            />
+            <ValuesStep selectedValues={selectedValues} onValuesChange={setSelectedValues} />
           )}
-
           {currentStep === 'deal-breakers' && (
-            <DealBreakersStep
-              selectedDealBreakers={selectedDealBreakers}
-              onDealBreakersChange={setSelectedDealBreakers}
-            />
+            <DealBreakersStep selectedDealBreakers={selectedDealBreakers} onDealBreakersChange={setSelectedDealBreakers} />
           )}
-
           {currentStep === 'work-preferences' && (
-            <WorkPreferencesStep
-              workLocation={workLocation}
-              onWorkLocationChange={setWorkLocation}
-            />
+            <WorkPreferencesStep workLocation={workLocation} onWorkLocationChange={setWorkLocation} />
           )}
-
           {currentStep === 'company-preferences' && (
             <CompanyPreferencesStep
               companySize={companySize}
@@ -246,7 +236,7 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
             />
           )}
 
-          {/* Navigation Buttons - Inside Card */}
+          {/* Navigation */}
           <div className="mt-6 sm:mt-8 md:mt-10 pt-4 sm:pt-6 md:pt-8 border-t border-border">
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full">
               {currentStepIndex > 0 ? (
@@ -301,7 +291,7 @@ export default function OnboardingFlow({ user, verified = false }: OnboardingFlo
           </div>
         </div>
 
-        {/* Skip option - Outside Card */}
+        {/* Skip option */}
         {currentStep !== 'name' && currentStep !== 'values' && (
           <div className="text-center mt-3 sm:mt-4 md:mt-5">
             <button

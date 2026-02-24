@@ -237,7 +237,10 @@ export default function AuthSection() {
                   loading={emailLoading}
                   onLoading={setEmailLoading}
                   onNewUser={() => setStep('create-password')}
-                  onExistingUser={() => setStep('password')}
+                  onExistingUser={(name) => {
+                    setUserName(name)
+                    setStep('password')
+                  }}
                 />
               </>
             )}
@@ -251,7 +254,10 @@ export default function AuthSection() {
                 loading={emailLoading}
                 onLoading={setEmailLoading}
                 onNewUser={() => setStep('create-password')}
-                onExistingUser={() => setStep('password')}
+                onExistingUser={(name) => {
+                  setUserName(name)
+                  setStep('password')
+                }}
               />
             )}
 
@@ -283,6 +289,7 @@ export default function AuthSection() {
                 password={password}
                 showPassword={showPassword}
                 loading={emailLoading}
+                userName={userName}
                 onPasswordChange={setPassword}
                 onShowPasswordChange={setShowPassword}
                 onSuccess={() => {

@@ -301,7 +301,6 @@ export type Database = {
           period_end: string
           period_start: string
           status: string
-          stripe_invoice_id: string
           user_id: string
         }
         Insert: {
@@ -314,7 +313,6 @@ export type Database = {
           period_end: string
           period_start: string
           status: string
-          stripe_invoice_id: string
           user_id: string
         }
         Update: {
@@ -327,7 +325,6 @@ export type Database = {
           period_end?: string
           period_start?: string
           status?: string
-          stripe_invoice_id?: string
           user_id?: string
         }
         Relationships: [
@@ -560,8 +557,6 @@ export type Database = {
           dodo_subscription_id: string | null
           id: string
           status: string
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
           tier: string
           updated_at: string | null
           user_id: string
@@ -576,8 +571,6 @@ export type Database = {
           dodo_subscription_id?: string | null
           id?: string
           status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           tier?: string
           updated_at?: string | null
           user_id: string
@@ -592,8 +585,6 @@ export type Database = {
           dodo_subscription_id?: string | null
           id?: string
           status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           tier?: string
           updated_at?: string | null
           user_id?: string
@@ -619,6 +610,7 @@ export type Database = {
         Args: { p_name: string; p_website?: string }
         Returns: string
       }
+      get_user_first_name: { Args: { p_email: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

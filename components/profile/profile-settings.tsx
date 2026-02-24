@@ -72,72 +72,53 @@ export default function ProfileSettings({ profile, user }: ProfileSettingsProps)
     setLoading(true)
 
     try {
+      const userName = fullName || user.email?.split('@')[0] || 'there'
+
       if (deleteChoice === 'hibernate') {
-        await supabase.from('profiles').update({ account_status: 'hibernated' }).eq('id', user.id)
-
-        const userName = fullName || user.email?.split('@')[0]
-
-        const response = await fetch('/api/send-notification-email', {
+        // 1. Send email FIRST while session is still valid
+        await fetch('/api/send-notification-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'hibernated',
-            email: user.email,
-            userName,
-          }),
+          body: JSON.stringify({ type: 'hibernated', email: user.email, userName }),
         })
 
-        if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.error || 'Failed to send hibernation email')
-        }
+        // 2. Update DB status
+        await supabase.from('profiles').update({ account_status: 'hibernated' }).eq('id', user.id)
 
         toast.success('Account hibernated!')
+
       } else if (deleteChoice === 'delete') {
         const deletionDate = new Date()
         deletionDate.setDate(deletionDate.getDate() + 30)
-
-        await supabase
-          .from('profiles')
-          .update({
-            account_status: 'deleted',
-            deletion_scheduled_at: deletionDate.toISOString(),
-          })
-          .eq('id', user.id)
-
         const formattedDate = deletionDate.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
+          year: 'numeric', month: 'long', day: 'numeric',
         })
 
-        const userName = fullName || user.email?.split('@')[0]
-
-        const response = await fetch('/api/send-notification-email', {
+        // 1. Send email FIRST while session is still valid
+        await fetch('/api/send-notification-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'deleted',
-            email: user.email,
-            userName,
-            deletionDate: formattedDate,
-          }),
+          body: JSON.stringify({ type: 'deleted', email: user.email, userName, deletionDate: formattedDate }),
         })
 
-        if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.error || 'Failed to send deletion email')
-        }
+        // 2. Update DB status
+        await supabase
+          .from('profiles')
+          .update({ account_status: 'deleted', deletion_scheduled_at: deletionDate.toISOString() })
+          .eq('id', user.id)
 
         toast.success('Account scheduled for deletion.')
       }
 
       setShowDeleteDialog(false)
       setDeleteChoice(null)
+
+      // Sign out after email and DB update are both done
       setTimeout(() => {
         supabase.auth.signOut()
         router.push('/')
       }, 1500)
+
     } catch (err: any) {
       toast.error(err.message || 'Failed to process account action')
     } finally {
