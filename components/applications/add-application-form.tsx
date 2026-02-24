@@ -8,7 +8,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Link as LinkIcon, Building2, MapPin, Briefcase, Sparkles, CheckCircle, AlertCircle, Lightbulb, FileText } from 'lucide-react'
+import {
+  Loader2,
+  Link as LinkIcon,
+  Building2,
+  MapPin,
+  Briefcase,
+  Sparkles,
+  CheckCircle,
+  AlertCircle,
+  Lightbulb,
+  FileText,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import StepIndicator from './application-form/StepIndicator'
 import MeteoriteLoader from './application-form/MeteoriteLoader'
@@ -52,7 +63,7 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
   const [interviewPrepEnabled, setInterviewPrepEnabled] = useState(false)
   const [companyResearch, setCompanyResearch] = useState<any>(null)
 
-  // URL Step Handler
+  // ─── URL Step ─────────────────────────────────────────────────────────────
   const handleUrlSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -70,12 +81,9 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
         body: JSON.stringify({ url: jobUrl }),
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch job details')
-      }
+      if (!response.ok) throw new Error('Failed to fetch job details')
 
       const data = await response.json()
-
       setJobTitle(data.jobTitle || '')
       setCompanyName(data.companyName || '')
       setLocation(data.location || '')
@@ -85,7 +93,7 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
       toast.success('Job details extracted!', { style: { color: '#16a34a' } })
     } catch (err: any) {
       toast.error(err.message || 'Failed to extract job details. Please enter manually.', {
-        style: { color: '#dc2626' }
+        style: { color: '#dc2626' },
       })
       setStep('details')
     } finally {
@@ -93,7 +101,7 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
     }
   }
 
-  // Details Step - navigates to Analysis
+  // ─── Details Step → Analysis ───────────────────────────────────────────────
   const handleAnalyzeMatch = async () => {
     if (!jobTitle || !companyName) {
       toast.error('Job title and company name are required', { style: { color: '#dc2626' } })
@@ -106,63 +114,46 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
       const response = await fetch('/api/analyze-match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobTitle,
-          companyName,
-          location,
-          jobDescription,
-        }),
+        body: JSON.stringify({ jobTitle, companyName, location, jobDescription }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error('Failed to analyze match')
+        throw new Error(data.error || 'Failed to analyze match')
       }
 
-      const data = await response.json()
       setMatchAnalysis(data)
       setStep('analysis')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to analyze match', {
-        style: { color: '#dc2626' }
-      })
+      toast.error(err.message || 'Failed to analyze match', { style: { color: '#dc2626' } })
     } finally {
       setAnalyzing(false)
     }
   }
 
-  // Analysis Step - navigates to Research
+  // ─── Analysis Step → Research ──────────────────────────────────────────────
   const handleProceedToResearch = () => {
     setStep('research')
   }
 
-  // Research Step - just show message and proceed to save
-  const handleResearchComplete = async () => {
-    setResearching(true)
-
-    // Just mark research as completed and move to save
-    // Actual research will happen in background after application is saved
-    toast.success('Company research will be processed in the background.', {
-      style: { color: '#16a34a' }
-    })
-    setCompanyResearch({ completed: true })
-    
-    // Small delay for UX
-    setTimeout(() => {
-      setResearching(false)
-      setStep('save')
-    }, 500)
+  // ─── Research Step ─────────────────────────────────────────────────────────
+  // Don't call the API here at all — research fires after save with the real applicationId
+  const handleResearchComplete = () => {
+    setCompanyResearch({ queued: true })
+    setStep('save')
   }
 
-  // Skip research
   const handleSkipResearch = () => {
     setStep('save')
   }
 
-  // Save Application
+  // ─── Save Application ──────────────────────────────────────────────────────
   const handleSaveApplication = async () => {
     setLoading(true)
 
     try {
+      // 1. Save application record
       const { data: application, error } = await supabase
         .from('applications')
         .insert({
@@ -173,7 +164,7 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
           company_name: companyName,
           location: location || null,
           job_description: jobDescription || null,
-          status: status,
+          status,
           applied_date: status === 'applied' && appliedDate ? appliedDate : null,
           notes: notes || null,
           match_score: matchAnalysis?.matchScore || null,
@@ -185,42 +176,65 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
 
       if (error) throw error
 
-      toast.success('Application saved successfully!', { style: { color: '#16a34a' } })
+      // 2. Navigate immediately — don't wait for anything else
+      toast.success('Application saved!', { style: { color: '#16a34a' } })
+      router.push('/dashboard/applications')
+      router.refresh()
 
-      // Background tasks (fire and forget)
-      Promise.all([
-        fetch('/api/research-company', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            companyName,
-            website: jobUrl ? new URL(jobUrl).origin : null,
-            applicationId: application.id,
-          }),
-        }).catch(err => console.error('Background company research failed:', err)),
+      // 3. Fire company research in background AFTER navigation
+      //    Show a persistent toast so user knows it's happening
+      const researchToastId = toast.loading(`Researching ${companyName} in background...`, {
+        duration: Infinity, // stays until we dismiss it
+      })
 
-        interviewPrepEnabled ? fetch('/api/generate-interview-prep', {
+      const getOrigin = () => {
+        try { return jobUrl ? new URL(jobUrl).origin : null } catch { return null }
+      }
+
+      fetch('/api/research-company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName,
+          website: getOrigin(),
+          applicationId: application.id,
+        }),
+      })
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}))
+          toast.dismiss(researchToastId)
+          if (data.success) {
+            toast.success(`${companyName} research complete!`, {
+              duration: 4000,
+              style: { color: '#16a34a' },
+            })
+          } else {
+            // Non-fatal — research failed silently, user can still use the app
+            console.warn('Research completed with issues:', data.error)
+          }
+        })
+        .catch((err) => {
+          toast.dismiss(researchToastId)
+          console.error('Research fire failed (non-fatal):', err)
+        })
+
+      // 4. Fire interview prep in background if enabled
+      if (interviewPrepEnabled) {
+        fetch('/api/generate-interview-prep', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ applicationId: application.id }),
-        }).catch(err => console.error('Background interview prep generation failed:', err)) : Promise.resolve()
-      ])
-
-      // Navigate after a short delay to ensure toast shows
-      setTimeout(() => {
-        router.push('/dashboard/applications')
-        router.refresh()
-      }, 500)
+        }).catch((err) => console.error('Interview prep failed (non-fatal):', err))
+      }
 
     } catch (err: any) {
       console.error('Save error:', err)
-      toast.error(err.message || 'Failed to save application', {
-        style: { color: '#dc2626' }
-      })
+      toast.error(err.message || 'Failed to save application', { style: { color: '#dc2626' } })
       setLoading(false)
     }
   }
 
+  // ─── Navigation ────────────────────────────────────────────────────────────
   const handleBack = () => {
     if (step === 'save') setStep('research')
     else if (step === 'research') setStep('analysis')
@@ -248,49 +262,33 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
   return (
     <div className="w-full px-3 sm:px-4 md:px-6 py-3 sm:py-4">
       <div className="bg-card rounded-2xl sm:rounded-3xl shadow-lg p-4 sm:p-6 md:p-8 border border-border w-full">
-        {/* Step Indicator */}
         <StepIndicator currentStep={step} isLoading={loading || analyzing || researching} />
 
         {/* URL Step */}
-        {step === 'url' && !loading ? (
-          <URLStep
-            jobUrl={jobUrl}
-            setJobUrl={setJobUrl}
-            onSubmit={handleUrlSubmit}
-            onSkip={() => setStep('details')}
-          />
-        ) : step === 'url' && loading ? (
-          <MeteoriteLoader message="Extracting job details..." />
-        ) : null}
+        {step === 'url' && !loading && (
+          <URLStep jobUrl={jobUrl} setJobUrl={setJobUrl} onSubmit={handleUrlSubmit} onSkip={() => setStep('details')} />
+        )}
+        {step === 'url' && loading && <MeteoriteLoader message="Extracting job details..." />}
 
         {/* Details Step */}
-        {step === 'details' && !analyzing ? (
+        {step === 'details' && !analyzing && (
           <DetailsStep
-            jobUrl={jobUrl}
-            setJobUrl={setJobUrl}
-            jobTitle={jobTitle}
-            setJobTitle={setJobTitle}
-            companyName={companyName}
-            setCompanyName={setCompanyName}
-            location={location}
-            setLocation={setLocation}
-            jobDescription={jobDescription}
-            setJobDescription={setJobDescription}
-            status={status}
-            setStatus={setStatus}
-            appliedDate={appliedDate}
-            setAppliedDate={setAppliedDate}
-            notes={notes}
-            setNotes={setNotes}
+            jobUrl={jobUrl} setJobUrl={setJobUrl}
+            jobTitle={jobTitle} setJobTitle={setJobTitle}
+            companyName={companyName} setCompanyName={setCompanyName}
+            location={location} setLocation={setLocation}
+            jobDescription={jobDescription} setJobDescription={setJobDescription}
+            status={status} setStatus={setStatus}
+            appliedDate={appliedDate} setAppliedDate={setAppliedDate}
+            notes={notes} setNotes={setNotes}
             onAnalyze={handleAnalyzeMatch}
             onBack={handleBack}
           />
-        ) : step === 'details' && analyzing ? (
-          <MeteoriteLoader message="Analyzing match..." />
-        ) : null}
+        )}
+        {step === 'details' && analyzing && <MeteoriteLoader message="Analyzing match..." />}
 
         {/* Analysis Step */}
-        {step === 'analysis' ? (
+        {step === 'analysis' && (
           <AnalysisStep
             matchAnalysis={matchAnalysis}
             getScoreColor={getScoreColor}
@@ -298,10 +296,10 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
             onProceed={handleProceedToResearch}
             onBack={handleBack}
           />
-        ) : null}
+        )}
 
         {/* Research Step */}
-        {step === 'research' && !researching ? (
+        {step === 'research' && !researching && (
           <ResearchStep
             companyName={companyName}
             onComplete={handleResearchComplete}
@@ -309,12 +307,11 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
             onBack={handleBack}
             research={companyResearch}
           />
-        ) : step === 'research' && researching ? (
-          <MeteoriteLoader message="Researching company..." />
-        ) : null}
+        )}
+        {step === 'research' && researching && <MeteoriteLoader message="Starting company research..." />}
 
         {/* Save Step */}
-        {step === 'save' ? (
+        {step === 'save' && (
           <SaveStep
             interviewPrepEnabled={interviewPrepEnabled}
             setInterviewPrepEnabled={setInterviewPrepEnabled}
@@ -322,13 +319,14 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
             onBack={handleBack}
             loading={loading}
           />
-        ) : null}
+        )}
       </div>
     </div>
   )
 }
 
-// Sub-components for each step
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
 function URLStep({ jobUrl, setJobUrl, onSubmit, onSkip }: any) {
   return (
     <form onSubmit={onSubmit} className="space-y-4 sm:space-y-6">
@@ -383,18 +381,13 @@ function URLStep({ jobUrl, setJobUrl, onSubmit, onSkip }: any) {
 
 function DetailsStep(props: any) {
   return (
-    <form onSubmit={(e) => { e.preventDefault(); props.onAnalyze(); }} className="space-y-4 sm:space-y-6">
-      {/* Job URL */}
+    <form onSubmit={(e) => { e.preventDefault(); props.onAnalyze() }} className="space-y-4 sm:space-y-6">
       <div>
-        <Label htmlFor="jobUrlDisplay" className="text-foreground font-medium text-sm sm:text-base">
-          Job URL
-        </Label>
+        <Label htmlFor="jobUrlDisplay" className="text-foreground font-medium text-sm sm:text-base">Job URL</Label>
         <div className="relative mt-2">
           <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-muted-foreground" />
           <Input
-            id="jobUrlDisplay"
-            type="url"
-            value={props.jobUrl}
+            id="jobUrlDisplay" type="url" value={props.jobUrl}
             onChange={(e) => props.setJobUrl(e.target.value)}
             placeholder="https://example.com/jobs/software-engineer"
             className="h-10 sm:h-12 pl-9 sm:pl-10 border-input focus:border-transparent focus:ring-2 focus:ring-ring rounded-lg sm:rounded-xl text-sm"
@@ -402,7 +395,6 @@ function DetailsStep(props: any) {
         </div>
       </div>
 
-      {/* Job Title */}
       <div>
         <Label htmlFor="jobTitle" className="text-foreground font-medium text-sm sm:text-base">
           Job Title <span className="text-destructive">*</span>
@@ -410,18 +402,14 @@ function DetailsStep(props: any) {
         <div className="relative mt-2">
           <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-muted-foreground" />
           <Input
-            id="jobTitle"
-            type="text"
-            value={props.jobTitle}
+            id="jobTitle" type="text" value={props.jobTitle} required
             onChange={(e) => props.setJobTitle(e.target.value)}
             placeholder="Senior Software Engineer"
             className="h-10 sm:h-12 pl-9 sm:pl-10 border-input focus:border-transparent focus:ring-2 focus:ring-ring rounded-lg sm:rounded-xl text-sm"
-            required
           />
         </div>
       </div>
 
-      {/* Company Name */}
       <div>
         <Label htmlFor="companyName" className="text-foreground font-medium text-sm sm:text-base">
           Company Name <span className="text-destructive">*</span>
@@ -429,28 +417,20 @@ function DetailsStep(props: any) {
         <div className="relative mt-2">
           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-muted-foreground" />
           <Input
-            id="companyName"
-            type="text"
-            value={props.companyName}
+            id="companyName" type="text" value={props.companyName} required
             onChange={(e) => props.setCompanyName(e.target.value)}
             placeholder="Acme Corporation"
             className="h-10 sm:h-12 pl-9 sm:pl-10 border-input focus:border-transparent focus:ring-2 focus:ring-ring rounded-lg sm:rounded-xl text-sm"
-            required
           />
         </div>
       </div>
 
-      {/* Location */}
       <div>
-        <Label htmlFor="location" className="text-foreground font-medium text-sm sm:text-base">
-          Location
-        </Label>
+        <Label htmlFor="location" className="text-foreground font-medium text-sm sm:text-base">Location</Label>
         <div className="relative mt-2">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-muted-foreground" />
           <Input
-            id="location"
-            type="text"
-            value={props.location}
+            id="location" type="text" value={props.location}
             onChange={(e) => props.setLocation(e.target.value)}
             placeholder="San Francisco, CA (Remote)"
             className="h-10 sm:h-12 pl-9 sm:pl-10 border-input focus:border-transparent focus:ring-2 focus:ring-ring rounded-lg sm:rounded-xl text-sm"
@@ -458,34 +438,25 @@ function DetailsStep(props: any) {
         </div>
       </div>
 
-      {/* Job Description */}
       <div>
-        <Label htmlFor="jobDescription" className="text-foreground font-medium text-sm sm:text-base">
-          Job Description
-        </Label>
+        <Label htmlFor="jobDescription" className="text-foreground font-medium text-sm sm:text-base">Job Description</Label>
         <Textarea
-          id="jobDescription"
-          value={props.jobDescription}
+          id="jobDescription" value={props.jobDescription} rows={5}
           onChange={(e) => props.setJobDescription(e.target.value)}
           placeholder="Paste the job description here..."
-          rows={5}
           className="mt-2 border-input focus:border-transparent focus:ring-2 focus:ring-ring rounded-lg sm:rounded-xl resize-none text-sm"
         />
       </div>
 
-      {/* Application Status */}
       <div>
-        <Label className="text-foreground font-medium mb-3 block text-sm sm:text-base">
-          Application Status
-        </Label>
+        <Label className="text-foreground font-medium mb-3 block text-sm sm:text-base">Application Status</Label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => props.setStatus('not_applied')}
-            className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 text-center transition-all text-sm sm:text-base ${props.status === 'not_applied'
-                ? 'border-primary bg-primary/10'
-                : 'border-border hover:border-muted-foreground hover:bg-muted'
-              }`}
+            className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 text-center transition-all text-sm sm:text-base ${
+              props.status === 'not_applied' ? 'border-primary bg-primary/10' : 'border-border hover:border-muted-foreground hover:bg-muted'
+            }`}
           >
             <div className="font-semibold text-foreground">Not Applied Yet</div>
             <div className="text-xs sm:text-sm text-muted-foreground mt-1">Planning to apply</div>
@@ -494,10 +465,9 @@ function DetailsStep(props: any) {
           <button
             type="button"
             onClick={() => props.setStatus('applied')}
-            className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 text-center transition-all text-sm sm:text-base ${props.status === 'applied'
-                ? 'border-primary bg-primary/10'
-                : 'border-border hover:border-muted-foreground hover:bg-muted'
-              }`}
+            className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 text-center transition-all text-sm sm:text-base ${
+              props.status === 'applied' ? 'border-primary bg-primary/10' : 'border-border hover:border-muted-foreground hover:bg-muted'
+            }`}
           >
             <div className="font-semibold text-foreground">Already Applied</div>
             <div className="text-xs sm:text-sm text-muted-foreground mt-1">Submitted application</div>
@@ -505,47 +475,34 @@ function DetailsStep(props: any) {
         </div>
       </div>
 
-      {/* Applied Date */}
       {props.status === 'applied' && (
         <div>
-          <Label htmlFor="appliedDate" className="text-foreground font-medium text-sm sm:text-base">
-            Application Date
-          </Label>
+          <Label htmlFor="appliedDate" className="text-foreground font-medium text-sm sm:text-base">Application Date</Label>
           <Input
-            id="appliedDate"
-            type="date"
-            value={props.appliedDate}
+            id="appliedDate" type="date" value={props.appliedDate}
             onChange={(e) => props.setAppliedDate(e.target.value)}
             className="h-10 sm:h-12 mt-2 border-input focus:border-transparent focus:ring-2 focus:ring-ring rounded-lg sm:rounded-xl text-sm"
           />
         </div>
       )}
 
-      {/* Notes */}
       <div>
-        <Label htmlFor="notes" className="text-foreground font-medium text-sm sm:text-base">
-          Notes
-        </Label>
+        <Label htmlFor="notes" className="text-foreground font-medium text-sm sm:text-base">Notes</Label>
         <Textarea
-          id="notes"
-          value={props.notes}
+          id="notes" value={props.notes} rows={4}
           onChange={(e) => props.setNotes(e.target.value)}
           placeholder="Any additional notes or thoughts about this opportunity..."
-          rows={4}
           className="mt-2 border-input focus:border-transparent focus:ring-2 focus:ring-ring rounded-lg sm:rounded-xl resize-none text-sm"
         />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4">
         <Button
-          type="button"
-          variant="outline"
-          onClick={props.onBack}
+          type="button" variant="outline" onClick={props.onBack}
           className="flex-1 h-10 sm:h-12 border-border rounded-lg sm:rounded-xl hover:bg-accent hover:text-accent-foreground text-sm sm:text-base"
         >
           Back
         </Button>
-
         <Button
           type="submit"
           className="flex-1 h-10 sm:h-12 bg-primary text-primary-foreground font-semibold rounded-lg sm:rounded-xl hover:opacity-90 transition-opacity text-sm sm:text-base"
@@ -582,10 +539,10 @@ function AnalysisStep({ matchAnalysis, getScoreColor, getScoreLabel, onProceed, 
             <h3 className="font-semibold text-foreground text-sm sm:text-base">Strengths</h3>
           </div>
           <ul className="space-y-2">
-            {matchAnalysis.analysis.strengths.map((strength: string, index: number) => (
-              <li key={index} className="flex items-start gap-2 text-xs sm:text-sm text-foreground">
+            {matchAnalysis.analysis.strengths.map((s: string, i: number) => (
+              <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-foreground">
                 <span className="text-green-600 mt-0.5 flex-shrink-0">•</span>
-                <span>{strength}</span>
+                <span>{s}</span>
               </li>
             ))}
           </ul>
@@ -599,10 +556,10 @@ function AnalysisStep({ matchAnalysis, getScoreColor, getScoreLabel, onProceed, 
             <h3 className="font-semibold text-foreground text-sm sm:text-base">Concerns</h3>
           </div>
           <ul className="space-y-2">
-            {matchAnalysis.analysis.concerns.map((concern: string, index: number) => (
-              <li key={index} className="flex items-start gap-2 text-xs sm:text-sm text-foreground">
+            {matchAnalysis.analysis.concerns.map((c: string, i: number) => (
+              <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-foreground">
                 <span className="text-yellow-600 mt-0.5 flex-shrink-0">•</span>
-                <span>{concern}</span>
+                <span>{c}</span>
               </li>
             ))}
           </ul>
@@ -616,10 +573,10 @@ function AnalysisStep({ matchAnalysis, getScoreColor, getScoreLabel, onProceed, 
             <h3 className="font-semibold text-foreground text-sm sm:text-base">Recommendations</h3>
           </div>
           <ul className="space-y-2">
-            {matchAnalysis.analysis.recommendations.map((rec: string, index: number) => (
-              <li key={index} className="flex items-start gap-2 text-xs sm:text-sm text-foreground">
+            {matchAnalysis.analysis.recommendations.map((r: string, i: number) => (
+              <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-foreground">
                 <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                <span>{rec}</span>
+                <span>{r}</span>
               </li>
             ))}
           </ul>
@@ -628,17 +585,13 @@ function AnalysisStep({ matchAnalysis, getScoreColor, getScoreLabel, onProceed, 
 
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4 border-t border-border">
         <Button
-          type="button"
-          variant="outline"
-          onClick={onBack}
+          type="button" variant="outline" onClick={onBack}
           className="flex-1 h-10 sm:h-12 border-border rounded-lg sm:rounded-xl hover:bg-accent hover:text-accent-foreground text-sm sm:text-base"
         >
           Edit Details
         </Button>
-
         <Button
-          type="button"
-          onClick={onProceed}
+          type="button" onClick={onProceed}
           className="flex-1 h-10 sm:h-12 bg-primary text-primary-foreground font-semibold rounded-lg sm:rounded-xl hover:opacity-90 transition-opacity text-sm sm:text-base"
         >
           Next: Research Company
@@ -658,38 +611,31 @@ function ResearchStep({ companyName, onComplete, onSkip, onBack, research }: any
               Research {companyName}?
             </h3>
             <p className="text-sm sm:text-base text-muted-foreground mb-4">
-              We'll gather information about the company including culture, recent news, and industry insights to help you prepare for interviews.
+              We'll gather company culture, insights, and interview tips to help you prepare — all in the background while you continue.
             </p>
             <p className="text-xs sm:text-sm text-muted-foreground italic">
-              You can skip this step to save the application faster, and research will happen in the background.
+              ✨ Research runs silently after saving — you won't have to wait at all.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4">
             <Button
-              type="button"
-              variant="outline"
-              onClick={onBack}
+              type="button" variant="outline" onClick={onBack}
               className="flex-1 h-10 sm:h-12 border-border rounded-lg sm:rounded-xl hover:bg-accent hover:text-accent-foreground text-sm sm:text-base"
             >
               Back
             </Button>
-
             <Button
-              type="button"
-              variant="outline"
-              onClick={onSkip}
+              type="button" variant="outline" onClick={onSkip}
               className="flex-1 h-10 sm:h-12 border-border rounded-lg sm:rounded-xl hover:bg-accent hover:text-accent-foreground text-sm sm:text-base"
             >
               Skip
             </Button>
-
             <Button
-              type="button"
-              onClick={onComplete}
+              type="button" onClick={onComplete}
               className="flex-1 h-10 sm:h-12 bg-primary text-primary-foreground font-semibold rounded-lg sm:rounded-xl hover:opacity-90 transition-opacity text-sm sm:text-base"
             >
-              Research Company
+              Yes, Research Company
             </Button>
           </div>
         </>
@@ -700,13 +646,10 @@ function ResearchStep({ companyName, onComplete, onSkip, onBack, research }: any
               <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
               <div>
                 <h3 className="font-semibold text-green-900 dark:text-green-100 text-base sm:text-lg mb-1">
-                  Research Successful!
+                  Research Queued!
                 </h3>
-                <p className="text-sm sm:text-base text-green-800 dark:text-green-200 mb-2">
-                  Company research has been completed and will be available on the company page.
-                </p>
-                <p className="text-xs sm:text-sm text-green-700 dark:text-green-300 italic">
-                  Details about {companyName}'s culture, news, and industry insights are being processed and will appear shortly.
+                <p className="text-sm sm:text-base text-green-800 dark:text-green-200">
+                  Once you save, we'll research {companyName} in the background. A notification will appear when it's ready.
                 </p>
               </div>
             </div>
@@ -714,17 +657,13 @@ function ResearchStep({ companyName, onComplete, onSkip, onBack, research }: any
 
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4">
             <Button
-              type="button"
-              variant="outline"
-              onClick={onBack}
+              type="button" variant="outline" onClick={onBack}
               className="flex-1 h-10 sm:h-12 border-border rounded-lg sm:rounded-xl hover:bg-accent hover:text-accent-foreground text-sm sm:text-base"
             >
               Back
             </Button>
-
             <Button
-              type="button"
-              onClick={onSkip}
+              type="button" onClick={onSkip}
               className="flex-1 h-10 sm:h-12 bg-primary text-primary-foreground font-semibold rounded-lg sm:rounded-xl hover:opacity-90 transition-opacity text-sm sm:text-base"
             >
               Continue to Save
@@ -753,12 +692,14 @@ function SaveStep({ interviewPrepEnabled, setInterviewPrepEnabled, onSave, onBac
           <button
             type="button"
             onClick={() => setInterviewPrepEnabled(!interviewPrepEnabled)}
-            className={`relative inline-flex h-5 sm:h-6 w-9 sm:w-11 items-center rounded-full transition-colors flex-shrink-0 ${interviewPrepEnabled ? 'bg-primary' : 'bg-input'
-              }`}
+            className={`relative inline-flex h-5 sm:h-6 w-9 sm:w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+              interviewPrepEnabled ? 'bg-primary' : 'bg-input'
+            }`}
           >
             <span
-              className={`inline-block h-3 sm:h-4 w-3 sm:w-4 transform rounded-full bg-white transition-transform ${interviewPrepEnabled ? 'translate-x-4 sm:translate-x-6' : 'translate-x-0.5 sm:translate-x-1'
-                }`}
+              className={`inline-block h-3 sm:h-4 w-3 sm:w-4 transform rounded-full bg-white transition-transform ${
+                interviewPrepEnabled ? 'translate-x-4 sm:translate-x-6' : 'translate-x-0.5 sm:translate-x-1'
+              }`}
             />
           </button>
         </div>
@@ -770,19 +711,13 @@ function SaveStep({ interviewPrepEnabled, setInterviewPrepEnabled, onSave, onBac
 
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4 border-t border-border">
         <Button
-          type="button"
-          variant="outline"
-          onClick={onBack}
+          type="button" variant="outline" onClick={onBack} disabled={loading}
           className="flex-1 h-10 sm:h-12 border-border rounded-lg sm:rounded-xl hover:bg-accent hover:text-accent-foreground text-sm sm:text-base"
-          disabled={loading}
         >
           Back
         </Button>
-
         <Button
-          type="button"
-          onClick={onSave}
-          disabled={loading}
+          type="button" onClick={onSave} disabled={loading}
           className="flex-1 h-10 sm:h-12 bg-primary text-primary-foreground font-semibold rounded-lg sm:rounded-xl hover:opacity-90 transition-opacity text-sm sm:text-base"
         >
           {loading ? (

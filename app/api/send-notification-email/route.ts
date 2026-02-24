@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   sendAccountHibernatedEmail,
   sendAccountDeletedEmail,
+  sendWelcomeEmail,
 } from '@/lib/email/notification-service'
 
 export async function POST(request: NextRequest) {
@@ -29,24 +30,29 @@ export async function POST(request: NextRequest) {
         result = await sendAccountDeletedEmail(email, userName, deletionDate)
         break
 
+      case 'welcome':
+        console.log('Sending welcome email to:', email)
+        result = await sendWelcomeEmail(email, userName)
+        break
+
       default:
         return NextResponse.json({ error: 'Invalid email type' }, { status: 400 })
     }
 
     if (!result.success) {
-      console.error('❌ Email service error:', result.error)
+      console.error('Email service error:', result.error)
       throw result.error
     }
 
     console.log('✅ Notification email sent successfully')
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error: any) {
-    console.error('❌ API send-notification-email error:', error)
+    console.error('API send-notification-email error:', error)
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to send email',
-        details: error.message || 'Unknown error'
-      }, 
+        details: error.message || 'Unknown error',
+      },
       { status: 500 }
     )
   }

@@ -28,6 +28,7 @@ export default function PasswordStep({
   password,
   showPassword,
   loading,
+  userName,
   onPasswordChange,
   onShowPasswordChange,
   onSuccess,
@@ -36,9 +37,6 @@ export default function PasswordStep({
 }: PasswordStepProps) {
   const supabase = createClient()
   const router = useRouter()
-
-  // Extract name from email (everything before @)
-  const userName = email.split('@')[0]
 
   const handlePasswordSubmit = async () => {
     if (!password) {
@@ -91,7 +89,7 @@ export default function PasswordStep({
           toast.success('Welcome back!')
           router.push('/dashboard')
         }
-        
+
         router.refresh()
         onLoading(false)
       }
@@ -106,7 +104,7 @@ export default function PasswordStep({
       {/* Welcome Message */}
       <div className="text-center">
         <p className="text-lg sm:text-xl font-semibold text-foreground capitalize">
-          Welcome back {userName}
+          Welcome back {userName || email.split('@')[0]}
         </p>
       </div>
 

@@ -233,6 +233,39 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_submissions: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          status: string | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       deletion_log: {
         Row: {
           application_id: string
@@ -268,7 +301,6 @@ export type Database = {
           period_end: string
           period_start: string
           status: string
-          stripe_invoice_id: string
           user_id: string
         }
         Insert: {
@@ -281,7 +313,6 @@ export type Database = {
           period_end: string
           period_start: string
           status: string
-          stripe_invoice_id: string
           user_id: string
         }
         Update: {
@@ -294,7 +325,6 @@ export type Database = {
           period_end?: string
           period_start?: string
           status?: string
-          stripe_invoice_id?: string
           user_id?: string
         }
         Relationships: [
@@ -435,6 +465,39 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          approved: boolean | null
+          created_at: string | null
+          id: string
+          name: string
+          quote: string
+          rating: number
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved?: boolean | null
+          created_at?: string | null
+          id?: string
+          name: string
+          quote: string
+          rating: number
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved?: boolean | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          quote?: string
+          rating?: number
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
@@ -494,8 +557,6 @@ export type Database = {
           dodo_subscription_id: string | null
           id: string
           status: string
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
           tier: string
           updated_at: string | null
           user_id: string
@@ -510,8 +571,6 @@ export type Database = {
           dodo_subscription_id?: string | null
           id?: string
           status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           tier?: string
           updated_at?: string | null
           user_id: string
@@ -526,8 +585,6 @@ export type Database = {
           dodo_subscription_id?: string | null
           id?: string
           status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           tier?: string
           updated_at?: string | null
           user_id?: string
@@ -553,6 +610,7 @@ export type Database = {
         Args: { p_name: string; p_website?: string }
         Returns: string
       }
+      get_user_first_name: { Args: { p_email: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
