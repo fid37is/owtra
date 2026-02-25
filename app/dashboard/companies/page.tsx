@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Building2, MapPin, Users, TrendingUp, ExternalLink, Briefcase, Grid, List, Search, SlidersHorizontal } from 'lucide-react'
+import { Building2, MapPin, Users, TrendingUp, ExternalLink, Briefcase, Grid, List, Search, SlidersHorizontal, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -34,26 +34,26 @@ interface Company {
 export default function CompaniesPage() {
   const router = useRouter()
   const supabase = createClient()
-  
+
   const [companies, setCompanies] = useState<Company[]>([])
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  
+
   // Filters and sorting
   const [searchQuery, setSearchQuery] = useState('')
   const [industryFilter, setIndustryFilter] = useState<string>('all')
   const [sizeFilter, setSizeFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'name' | 'rating' | 'applications'>('name')
-  
+
   useEffect(() => {
     fetchCompanies()
   }, [])
-  
+
   useEffect(() => {
     applyFiltersAndSort()
   }, [companies, searchQuery, industryFilter, sizeFilter, sortBy])
-  
+
   async function fetchCompanies() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -102,29 +102,29 @@ export default function CompaniesPage() {
       setLoading(false)
     }
   }
-  
+
   function applyFiltersAndSort() {
     let filtered = [...companies]
-    
+
     // Search filter
     if (searchQuery) {
-      filtered = filtered.filter(company => 
+      filtered = filtered.filter(company =>
         company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         company.industry?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         company.headquarters?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
-    
+
     // Industry filter
     if (industryFilter !== 'all') {
       filtered = filtered.filter(company => company.industry === industryFilter)
     }
-    
+
     // Size filter
     if (sizeFilter !== 'all') {
       filtered = filtered.filter(company => company.company_size === sizeFilter)
     }
-    
+
     // Sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -138,10 +138,10 @@ export default function CompaniesPage() {
           return 0
       }
     })
-    
+
     setFilteredCompanies(filtered)
   }
-  
+
   // Get unique industries and sizes for filters
   const industries = Array.from(new Set(companies.map(c => c.industry).filter(Boolean)))
   const sizes = Array.from(new Set(companies.map(c => c.company_size).filter(Boolean)))
@@ -159,11 +159,19 @@ export default function CompaniesPage() {
   return (
     <div className="max-w-7xl mx-auto p-2">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Companies</h1>
-        <p className="text-muted-foreground">
-          Companies you've applied to or researched
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Companies</h1>
+          <p className="text-muted-foreground">
+            Companies you've applied to or researched
+          </p>
+        </div>
+        <Link href="/dashboard/companies/research">
+          <Button className="gap-2 shrink-0">
+            <Plus className="w-4 h-4" />
+            Research a Company
+          </Button>
+        </Link>
       </div>
 
       {companies.length > 0 ? (
@@ -305,11 +313,10 @@ export default function CompaniesPage() {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <svg
                               key={star}
-                              className={`w-4 h-4 ${
-                                star <= Math.round(company.overall_rating!)
+                              className={`w-4 h-4 ${star <= Math.round(company.overall_rating!)
                                   ? 'text-yellow-400 fill-current'
                                   : 'text-gray-300'
-                              }`}
+                                }`}
                               xmlns="http://www.w3.org/2000/svg"
                               viewBox="0 0 24 24"
                               fill="none"
@@ -355,7 +362,7 @@ export default function CompaniesPage() {
                         <Briefcase className="w-4 h-4" />
                         <span>{company.applicationsCount} {company.applicationsCount === 1 ? 'application' : 'applications'}</span>
                       </div>
-                      
+
                       {company.website && (
                         <a
                           href={company.website}
@@ -399,7 +406,7 @@ export default function CompaniesPage() {
                             <h2 className="text-xl font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
                               {company.name}
                             </h2>
-                            
+
                             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                               {company.industry && (
                                 <div className="flex items-center gap-1">
@@ -429,11 +436,10 @@ export default function CompaniesPage() {
                                 {[1, 2, 3, 4, 5].map((star) => (
                                   <svg
                                     key={star}
-                                    className={`w-4 h-4 ${
-                                      star <= Math.round(company.overall_rating!)
+                                    className={`w-4 h-4 ${star <= Math.round(company.overall_rating!)
                                         ? 'text-yellow-400 fill-current'
                                         : 'text-gray-300'
-                                    }`}
+                                      }`}
                                     xmlns="http://www.w3.org/2000/svg"
                                     viewBox="0 0 24 24"
                                     fill="none"
