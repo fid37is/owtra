@@ -44,8 +44,7 @@ export default async function proxy(request: NextRequest) {
   const protectedRoutes = ['/dashboard', '/subscription', '/settings', '/profile']
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route))
 
-  const authRoutes = ['/login', '/signup', '/', '/auth']
-  const isAuthRoute = authRoutes.some(route => path === route || path.startsWith('/auth'))
+  const isAuthRoute = ['/login', '/signup', '/'].includes(path) || path.startsWith('/auth/callback')
 
   if (!user && isProtectedRoute) {
     const redirectUrl = new URL('/', request.url)

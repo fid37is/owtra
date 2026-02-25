@@ -39,6 +39,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ── Model resolution ──────────────────────────────────────────────────
+    const modelName = process.env.GEMINI_MODEL
+    if (!modelName) {
+      console.error('GEMINI_MODEL environment variable is not set')
+      return NextResponse.json(
+        { error: 'AI model is not configured. Please set GEMINI_MODEL in your environment variables.' },
+        { status: 500 }
+      )
+    }
+
     // Get application details for context
     const { data: application, error: appError } = await supabase
       .from('applications')
@@ -54,8 +64,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Analyze with Gemini (matching your interview prep route)
+    // Analyze with Gemini
     const feedback = await analyzeWithGemini(
+      modelName,
       application,
       questions,
       answers,
@@ -74,15 +85,14 @@ export async function POST(request: NextRequest) {
 }
 
 async function analyzeWithGemini(
+  modelName: string,
   application: any,
   questions: InterviewQuestion[],
   answers: UserAnswer[],
   totalTime: number
 ) {
   const genAI = getGeminiClient()
-  const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.0-flash-lite',
-  })
+  const model = genAI.getGenerativeModel({ model: modelName })
 
   const analysisPrompt = `You are an expert interview coach analyzing a candidate's practice interview responses for a ${application.job_title} position at ${application.company_name}.
 
