@@ -482,7 +482,7 @@ export default function ApplicationDetail({ application }: ApplicationDetailProp
                 <div className="flex gap-3">
                   <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground break-words">Added to TrailAm</p>
+                    <p className="text-sm font-medium text-foreground break-words">Added to Owtra</p>
                     <p className="text-xs text-muted-foreground">{formatDate(application.created_at)}</p>
                   </div>
                 </div>

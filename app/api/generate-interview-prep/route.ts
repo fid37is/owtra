@@ -2,34 +2,34 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getGeminiClient } from '@/lib/ai/providers'
-import { InterviewPrep, InterviewQuestion } from '@/lib/supabase/dodo-types'
+import { InterviewPrep } from '@/lib/supabase/dodo-types'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
 
-    // Verify authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { applicationId } = await request.json()
-
     if (!applicationId) {
       return NextResponse.json({ error: 'Application ID required' }, { status: 400 })
     }
 
-    // Fetch application with company info
+    const modelName = process.env.GEMINI_MODEL
+    if (!modelName) {
+      console.error('GEMINI_MODEL environment variable is not set')
+      return NextResponse.json(
+        { error: 'AI model is not configured. Please set GEMINI_MODEL in your environment variables.' },
+        { status: 500 }
+      )
+    }
+
     const { data: application, error: appError } = await supabase
       .from('applications')
-      .select(`
-        *,
-        company:companies(*)
-      `)
+      .select(`*, company:companies(*)`)
       .eq('id', applicationId)
       .eq('user_id', user.id)
       .single()
@@ -38,7 +38,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 
-    // Check if job description exists
     if (!application.job_description || application.job_description.trim().length < 100) {
       return NextResponse.json(
         { error: 'Job description is too short. Please add more details to generate interview prep.' },
@@ -46,16 +45,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Generate interview prep
     const interviewPrep = await generateInterviewQuestions(
+      modelName,
       application.job_title,
       application.company_name,
       application.job_description,
       application.company?.description || null,
-      application.company?.culture_summary || null
+      application.company?.culture_summary || null,
     )
 
-    // Update application with interview prep
     const { error: updateError } = await supabase
       .from('applications')
       .update({
@@ -70,10 +68,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to save interview prep' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      interviewPrep
-    })
+    return NextResponse.json({ success: true, interviewPrep })
 
   } catch (error: any) {
     console.error('Interview prep error:', error)
@@ -85,17 +80,17 @@ export async function POST(request: Request) {
 }
 
 async function generateInterviewQuestions(
+  modelName: string,
   jobTitle: string,
   companyName: string,
   jobDescription: string,
   companyDescription: string | null,
-  cultureSummary: string | null
+  cultureSummary: string | null,
 ): Promise<InterviewPrep> {
   const genAI = getGeminiClient()
-  const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.0-flash-lite',
-  })
+  const model = genAI.getGenerativeModel({ model: modelName })
 
+  // Always generate both sets — the page decides which to show based on selected mode
   const prompt = `You are an expert interview coach. Generate comprehensive interview preparation materials for a candidate applying to this position.
 
 JOB DETAILS:
@@ -106,24 +101,58 @@ JOB DETAILS:
 ${companyDescription ? `COMPANY BACKGROUND:\n${companyDescription}` : ''}
 ${cultureSummary ? `COMPANY CULTURE:\n${cultureSummary}` : ''}
 
-Generate a comprehensive interview prep package with:
+Generate TWO separate question sets:
+
+WRITTEN QUESTIONS (behavioral & role-specific — open ended, no MCQ):
 1. 5 behavioral questions (STAR method focused)
-2. 5 technical/role-specific questions
-3. 3 company-specific questions
-4. 3 questions about the role itself
-5. Key topics to study/prepare
-6. General preparation tips
-7. Company-specific insights to know
+2. 3 role-specific questions
+
+MCQ QUESTIONS (technical & company-specific — multiple choice only, no open ended):
+1. 5 technical questions
+2. 3 company-specific questions
+
+For MCQ questions you MUST include:
+- "mcq_options": array of exactly 4 objects with "id" ("a","b","c","d") and "text"
+- "correct_option_id": the correct option id
+- "explanation": 1-2 sentences explaining why the correct answer is right
+Make wrong options subtly plausible — common misconceptions, not obviously silly answers.
+
+Also include:
+- Key topics to study/prepare
+- General preparation tips
+- Company-specific insights to know
 
 IMPORTANT: Respond ONLY with valid JSON in exactly this format (no markdown, no code blocks):
 {
-  "questions": [
+  "written_questions": [
     {
-      "id": "q1",
+      "id": "w1",
       "category": "behavioral",
       "question": "<question text>",
       "tips": ["<tip 1>", "<tip 2>"],
       "sample_answer": "<optional sample answer framework>"
+    },
+    {
+      "id": "w2",
+      "category": "role-specific",
+      "question": "<question text>",
+      "tips": ["<tip 1>"]
+    }
+  ],
+  "mcq_questions": [
+    {
+      "id": "m1",
+      "category": "technical",
+      "question": "<question text>",
+      "tips": ["<tip 1>"],
+      "mcq_options": [
+        { "id": "a", "text": "<option A>" },
+        { "id": "b", "text": "<option B>" },
+        { "id": "c", "text": "<option C>" },
+        { "id": "d", "text": "<option D>" }
+      ],
+      "correct_option_id": "b",
+      "explanation": "<why the correct answer is right>"
     }
   ],
   "key_topics": ["<topic 1>", "<topic 2>", "<topic 3>", "<topic 4>"],
@@ -131,37 +160,52 @@ IMPORTANT: Respond ONLY with valid JSON in exactly this format (no markdown, no 
   "company_insights": ["<insight 1>", "<insight 2>", "<insight 3>"]
 }
 
-Make questions specific and relevant to the actual job description. Provide actionable tips.`
+Make questions specific to the actual job description.`
 
   try {
     const result = await model.generateContent(prompt)
-    const response = result.response
-    let text = response.text().trim()
+    let text = result.response.text().trim()
 
-    // Clean up response
     if (text.startsWith('```json')) {
       text = text.replace(/^```json\n/, '').replace(/\n```$/, '')
     } else if (text.startsWith('```')) {
       text = text.replace(/^```\n/, '').replace(/\n```$/, '')
     }
 
-    const prep = JSON.parse(text) as InterviewPrep
-    prep.generated_at = new Date().toISOString()
+    const raw = JSON.parse(text)
 
-    // Validate structure
-    if (!Array.isArray(prep.questions)) prep.questions = []
-    if (!Array.isArray(prep.key_topics)) prep.key_topics = []
-    if (!Array.isArray(prep.preparation_tips)) prep.preparation_tips = []
-    if (!Array.isArray(prep.company_insights)) prep.company_insights = []
+    const writtenQuestions = Array.isArray(raw.written_questions)
+      ? raw.written_questions.map((q: any, idx: number) => ({
+          id: q.id || `w${idx + 1}`,
+          category: q.category || 'behavioral',
+          question: q.question || '',
+          tips: Array.isArray(q.tips) ? q.tips : [],
+          sample_answer: q.sample_answer,
+        }))
+      : []
 
-    // Ensure questions have required fields
-    prep.questions = prep.questions.map((q, idx) => ({
-      id: q.id || `q${idx + 1}`,
-      category: q.category || 'role-specific',
-      question: q.question || '',
-      tips: Array.isArray(q.tips) ? q.tips : [],
-      sample_answer: q.sample_answer
-    }))
+    const mcqQuestions = Array.isArray(raw.mcq_questions)
+      ? raw.mcq_questions.map((q: any, idx: number) => ({
+          id: q.id || `m${idx + 1}`,
+          category: q.category || 'technical',
+          question: q.question || '',
+          tips: Array.isArray(q.tips) ? q.tips : [],
+          mcq_options: Array.isArray(q.mcq_options) ? q.mcq_options : [],
+          correct_option_id: q.correct_option_id || '',
+          explanation: q.explanation || '',
+        }))
+      : []
+
+    const prep: InterviewPrep = {
+      written_questions: writtenQuestions,
+      mcq_questions: mcqQuestions,
+      // Keep questions for backwards compat — merge both
+      questions: [...writtenQuestions, ...mcqQuestions],
+      key_topics: Array.isArray(raw.key_topics) ? raw.key_topics : [],
+      preparation_tips: Array.isArray(raw.preparation_tips) ? raw.preparation_tips : [],
+      company_insights: Array.isArray(raw.company_insights) ? raw.company_insights : [],
+      generated_at: new Date().toISOString(),
+    }
 
     return prep
 

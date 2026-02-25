@@ -62,10 +62,14 @@ async function analyzeWithGemini(
   location: string | null,
   userPreferences: UserPreferences
 ): Promise<MatchAnalysisResult> {
+  // ── Model resolution ────────────────────────────────────────────────────
+  const modelName = process.env.GEMINI_MODEL
+  if (!modelName) {
+    throw new Error('AI model is not configured. Please set GEMINI_MODEL in your environment variables.')
+  }
+
   const genAI = getGeminiClient()
-  const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.5-flash-lite',
-  })
+  const model = genAI.getGenerativeModel({ model: modelName })
 
   // Build comprehensive prompt with professional profile
   const prompt = `You are an expert career advisor analyzing job opportunities. Analyze this job posting against BOTH the candidate's professional qualifications AND their career preferences. Provide a detailed, honest match assessment.

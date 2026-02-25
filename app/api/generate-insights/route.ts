@@ -3,49 +3,44 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getGeminiClient } from '@/lib/ai/providers'
 
-// Function to clean up and format AI-generated text
 function cleanAIText(text: string): string {
   return text
-    // Remove excessive asterisks used for bold
-    .replace(/\*\*\*+/g, '') // Remove triple or more asterisks
-    .replace(/\*\*/g, '') // Remove double asterisks (bold markdown)
-    .replace(/\*/g, '') // Remove single asterisks
-    
-    // Clean up excessive formatting
-    .replace(/#{1,6}\s/g, '') // Remove markdown headers
-    .replace(/`{1,3}/g, '') // Remove code backticks
-    
-    // Remove excessive exclamation marks
-    .replace(/!{2,}/g, '!') // Max one exclamation mark
-    
-    // CRITICAL: Ensure section titles are on separate lines
+    .replace(/\*\*\*+/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/`{1,3}/g, '')
+    .replace(/!{2,}/g, '!')
     .replace(/([.!?])([A-Z][a-z]+\s+[A-Z][a-z]+:)/g, '$1\n\n$2\n\n')
     .replace(/([.!?])([A-Z][a-z]+:)/g, '$1\n\n$2\n\n')
-    
-    // Ensure bullet points are each on their own line
-    .replace(/([^\n])(•|[•◦▪▫])/g, '$1\n$2') // Add newline before bullet if missing
-    .replace(/^[•◦▪▫–—]\s*/gm, '• ') // Normalize all bullet types to •
-    
-    // Clean up spacing
-    .replace(/\n{4,}/g, '\n\n') // Max 2 consecutive newlines
-    .replace(/^\s+|\s+$/gm, '') // Trim whitespace from each line
-    
+    .replace(/([^\n])(•|[•◦▪▫])/g, '$1\n$2')
+    .replace(/^[•◦▪▫–—]\s*/gm, '• ')
+    .replace(/\n{4,}/g, '\n\n')
+    .replace(/^\s+|\s+$/gm, '')
     .trim()
 }
 
 export async function POST(request: Request) {
   try {
+    // ── Auth ──────────────────────────────────────────────────────────────
     const supabase = await createClient()
-
-    // Verify authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // ── Model resolution ──────────────────────────────────────────────────
+    const model = process.env.GEMINI_MODEL
+    if (!model) {
+      console.error('GEMINI_MODEL environment variable is not set')
+      return NextResponse.json(
+        { error: 'AI model is not configured. Please set GEMINI_MODEL in your environment variables.' },
+        { status: 500 }
+      )
+    }
+
+    // ── Payload ───────────────────────────────────────────────────────────
     const {
       totalApplications,
       appliedCount,
@@ -60,11 +55,7 @@ export async function POST(request: Request) {
       topLocations,
     } = await request.json()
 
-    const genAI = getGeminiClient()
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.0-flash-lite',
-    })
-
+    // ── Prompt ────────────────────────────────────────────────────────────
     const prompt = `You are an expert career advisor and job search strategist. Analyze the following job search statistics and provide personalized, actionable insights and recommendations.
 
 JOB SEARCH STATISTICS:
@@ -77,7 +68,7 @@ JOB SEARCH STATISTICS:
 - Response Rate: ${responseRate}% (interviews + offers / applied)
 - Average Match Score: ${averageMatchScore}%
 - Recent Activity: ${recentApps} applications in last 7 days (vs ${previousApps} in previous 7 days)
-${topLocations.length > 0 ? `- Top Target Locations: ${topLocations.map((l: any) => `${l.location} (${l.count})`).join(', ')}` : ''}
+${topLocations.length > 0 ? `- Top Target Locations: ${topLocations.map((l: { location: string; count: number }) => `${l.location} (${l.count})`).join(', ')}` : ''}
 
 TASK:
 Provide a comprehensive career coaching analysis with the following sections. CRITICAL: Each section title MUST be on its own line, followed by bullet points (where applicable), with each bullet point on a new line.
@@ -119,49 +110,32 @@ FORMAT RULES (CRITICAL):
 - Write naturally and warmly
 - Use specific numbers from their data
 
-EXAMPLE FORMAT:
-Overall Assessment:
-
-[Your assessment paragraph here]
-
-Key Insights:
-
-• First insight with specific data
-• Second insight comparing to benchmarks
-• Third insight about patterns
-
-Actionable Recommendations:
-
-• First specific action item
-• Second specific action item
-• Third specific action item
-
-Motivational Closing:
-
-[Your encouragement here]
-
 IMPORTANT CONTEXT:
 - If they have very few applications (< 5), emphasize the need to increase volume
 - If response rate is low (< 10%), focus on application quality and targeting
 - If they have many tracked but not applied, encourage action
 - If they're doing well, acknowledge it and suggest optimization strategies`
 
-    const result = await model.generateContent(prompt)
-    const rawInsights = result.response.text()
-    
-    // Clean up the generated text
-    const insights = cleanAIText(rawInsights)
+    // ── Generate ──────────────────────────────────────────────────────────
+    const genAI = getGeminiClient()
+    const geminiModel = genAI.getGenerativeModel({ model })
 
-    return NextResponse.json({
-      success: true,
-      insights,
-    })
+    const result = await geminiModel.generateContent(prompt)
+    const insights = cleanAIText(result.response.text())
+
+    return NextResponse.json({ success: true, insights })
 
   } catch (error: any) {
     console.error('Insights generation error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to generate insights' },
-      { status: 500 }
-    )
+
+    // Surface a meaningful message without leaking internals
+    const message =
+      error?.message?.includes('API key')
+        ? 'Gemini API key is invalid or not configured. Please check your GEMINI_API_KEY.'
+        : error?.message?.includes('not found') || error?.message?.includes('404')
+        ? `Model not found. Verify the GEMINI_MODEL value in your environment variables.`
+        : error?.message || 'Failed to generate insights'
+
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -44,8 +44,14 @@ export type Profile = Omit<Tables<'profiles'>, 'resumes'> & {
   resumes: { url: string; fileName: string; isPrimary: boolean }[] | null
 }
 
-// Interview prep types (app-level, not a DB table)
-export type InterviewQuestion = {
+// MCQ option
+export type MCQOption = {
+  id: string  // "a" | "b" | "c" | "d"
+  text: string
+}
+
+// Written question — behavioral & role-specific, open-ended
+export type WrittenQuestion = {
   id: string
   category: string
   question: string
@@ -53,8 +59,28 @@ export type InterviewQuestion = {
   sample_answer?: string
 }
 
+// MCQ question — technical & company-specific, multiple choice
+export type MCQQuestion = {
+  id: string
+  category: string
+  question: string
+  tips: string[]
+  mcq_options: MCQOption[]
+  correct_option_id: string
+  explanation: string
+}
+
+// Legacy flat type — kept for backwards compatibility with existing DB records
+export type InterviewQuestion = WrittenQuestion & {
+  mcq_options?: MCQOption[]
+  correct_option_id?: string
+  explanation?: string
+}
+
 export type InterviewPrep = {
-  questions: InterviewQuestion[]
+  written_questions?: WrittenQuestion[]  // undefined on old DB records
+  mcq_questions?: MCQQuestion[]          // undefined on old DB records
+  questions?: InterviewQuestion[] 
   key_topics: string[]
   preparation_tips: string[]
   company_insights: string[]
