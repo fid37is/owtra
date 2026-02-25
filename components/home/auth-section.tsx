@@ -132,7 +132,7 @@ export default function AuthSection() {
       initial: { title: intentUpgrade ? 'Upgrade to Premium' : 'You got this', subtitle: intentUpgrade ? 'Sign in or create account' : 'Keep track of it' },
       email: { title: 'You got this', subtitle: 'Keep track of it' },
       verify: { title: 'Never give up', subtitle: 'Check your email' },
-      password: { title: 'Loving it right?', subtitle: 'Welcome back' },
+      password: { title: 'Loving it right?', subtitle: '' },
       'create-password': { title: 'Join the Owtras', subtitle: 'Create your account' },
       'forgot-password': { title: 'Did you forget?', subtitle: 'Reset your password' },
       'forgot-password-sent': { title: 'Almost Done', subtitle: 'Check your email' },
@@ -377,14 +377,14 @@ export default function AuthSection() {
           ">
                 By continuing, you agree to our{" "}
                 <a
-                  href="#"
+                  href="/terms"
                   className="text-primary font-medium hover:underline"
                 >
                   Terms
                 </a>
                 {" "}and{" "}
                 <a
-                  href="#"
+                  href="/privacy"
                   className="text-primary font-medium hover:underline"
                 >
                   Privacy Policy
