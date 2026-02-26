@@ -54,10 +54,11 @@ export const metadata: Metadata = {
     siteName: 'Owtra',
     images: [
       {
-        url: '/og/og-image.png',
+        url: '/og/og-image.png?v=2',
         width: 1200,
         height: 630,
         alt: 'Owtra Job Application Tracker',
+        type: 'image/png',
       },
     ],
     locale: 'en_US',

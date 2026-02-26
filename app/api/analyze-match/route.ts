@@ -1,7 +1,9 @@
+// app/api/analyze-match/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeJobMatch, type MatchAnalysisResult } from '@/lib/ai/match-analyzer'
 import { isAIConfigured, getAIProvider, getProviderName } from '@/lib/ai/providers'
+import { getApiErrorMessage, getHttpStatus } from '@/lib/ai/errors'
 
 export async function POST(request: Request) {
     try {
@@ -80,7 +82,7 @@ export async function POST(request: Request) {
             )
         }
 
-        // Fetch user preferences AND professional profile (UPDATED)
+        // Fetch user preferences AND professional profile
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select(`
@@ -110,7 +112,7 @@ export async function POST(request: Request) {
             profile.preferred_company_size ||
             (Array.isArray(profile.preferred_industries) && profile.preferred_industries.length > 0)
 
-        const hasProfile = 
+        const hasProfile =
             profile.current_job_title ||
             profile.experience_level ||
             (Array.isArray(profile.skills) && profile.skills.length > 0)
@@ -139,7 +141,7 @@ export async function POST(request: Request) {
             })
         }
 
-        // Perform AI analysis with comprehensive profile data (UPDATED)
+        // Perform AI analysis with comprehensive profile data
         const analysis = await analyzeJobMatch(
             jobData.job_title,
             jobData.company_name,
@@ -160,33 +162,33 @@ export async function POST(request: Request) {
             }
         )
 
-        // If analyzing existing application, update it
+        // If analyzing existing application, save the result
         if (applicationId) {
             const { error: updateError } = await supabase
                 .from('applications')
                 .update({
                     match_score: analysis.match_score,
-                    match_analysis: analysis as any, // Cast to bypass Json type
+                    match_analysis: analysis as any,
                 })
                 .eq('id', applicationId)
 
             if (updateError) {
                 console.error('Failed to update application:', updateError)
-                return NextResponse.json({ error: 'Failed to save analysis' }, { status: 500 })
+                return NextResponse.json({ error: 'Failed to save analysis results' }, { status: 500 })
             }
         }
 
-        // Return analysis (will be saved by caller if in preview mode)
         return NextResponse.json({
             success: true,
             matchScore: analysis.match_score,
             analysis
         })
+
     } catch (error: any) {
         console.error('Match analysis error:', error)
         return NextResponse.json(
-            { error: error.message || 'Failed to analyze match' },
-            { status: 500 }
+            { error: getApiErrorMessage(error, 'analyze your match') },
+            { status: getHttpStatus(error) }
         )
     }
 }

@@ -1,6 +1,7 @@
 // app/api/research-company/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getApiErrorMessage, getHttpStatus } from '@/lib/ai/errors'
 
 export async function POST(request: Request) {
   try {
@@ -46,8 +47,8 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('[API] Research route error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to trigger research' },
-      { status: 500 }
+      { error: getApiErrorMessage(error, 'start company research') },
+      { status: getHttpStatus(error) }
     )
   }
 }

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getGeminiClient } from '@/lib/ai/providers'
+import { getApiErrorMessage, getHttpStatus } from '@/lib/ai/errors'
 
 type UserAnswer = {
   questionId: string
@@ -20,7 +21,7 @@ type InterviewQuestion = {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -78,8 +79,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error analyzing interview answers:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to analyze answers' },
-      { status: 500 }
+      { error: getApiErrorMessage(error, 'analyze your answers') },
+      { status: getHttpStatus(error) }
     )
   }
 }
@@ -184,8 +185,8 @@ Be constructive, encouraging, and specific in your feedback. Focus on actionable
 
   } catch (parseError) {
     console.error('Failed to parse AI response:', parseError)
-    
-    // Fallback feedback structure
+
+    // Fallback feedback structure — ensures the user always gets a result
     return {
       overall_score: 70,
       question_feedback: questions.map((q: InterviewQuestion) => {

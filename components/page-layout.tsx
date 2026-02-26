@@ -1,6 +1,6 @@
 'use client'
 
-import HomeNav from '@/components/home/home-nav'
+import HomeNav from '../components/home/home-nav'
 import Link from 'next/link'
 
 interface PageLayoutProps {
@@ -39,6 +39,7 @@ export default function PageLayout({ children }: PageLayoutProps) {
                 <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
                 <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
                 <li><Link href="/reviews/new" className="hover:text-primary transition-colors">Leave a Review</Link></li>
+                <li><Link href="/how-to" className="hover:text-primary transition-colors">How To</Link></li>
               </ul>
             </div>
             <div>
