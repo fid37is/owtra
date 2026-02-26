@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getGeminiClient } from '@/lib/ai/providers'
+import { getApiErrorMessage, getHttpStatus } from '@/lib/ai/errors'
 
 function cleanAIText(text: string): string {
   return text
@@ -127,15 +128,9 @@ IMPORTANT CONTEXT:
 
   } catch (error: any) {
     console.error('Insights generation error:', error)
-
-    // Surface a meaningful message without leaking internals
-    const message =
-      error?.message?.includes('API key')
-        ? 'Gemini API key is invalid or not configured. Please check your GEMINI_API_KEY.'
-        : error?.message?.includes('not found') || error?.message?.includes('404')
-        ? `Model not found. Verify the GEMINI_MODEL value in your environment variables.`
-        : error?.message || 'Failed to generate insights'
-
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json(
+      { error: getApiErrorMessage(error, 'generate insights') },
+      { status: getHttpStatus(error) }
+    )
   }
 }

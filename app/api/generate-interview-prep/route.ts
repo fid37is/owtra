@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getGeminiClient } from '@/lib/ai/providers'
 import { InterviewPrep } from '@/lib/supabase/dodo-types'
+import { getApiErrorMessage, getHttpStatus } from '@/lib/ai/errors'
 
 export async function POST(request: Request) {
   try {
@@ -71,10 +72,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, interviewPrep })
 
   } catch (error: any) {
+    // Log full error server-side only — never send raw SDK errors to the client
     console.error('Interview prep error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to generate interview prep' },
-      { status: 500 }
+      { error: getApiErrorMessage(error, 'generate interview prep') },
+      { status: getHttpStatus(error) }
     )
   }
 }
@@ -211,6 +213,7 @@ Make questions specific to the actual job description.`
 
   } catch (error: any) {
     console.error('Gemini interview prep error:', error)
+    // Throw a clean message — will be caught and normalized by the outer handler
     throw new Error('Failed to generate interview questions. Please try again.')
   }
 }

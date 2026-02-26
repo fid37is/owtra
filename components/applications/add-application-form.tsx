@@ -40,6 +40,31 @@ interface MatchAnalysis {
 
 type FormStep = 'url' | 'details' | 'analysis' | 'research' | 'save'
 
+// ─────────────────────────────────────────────
+// Global client-side error normalizer
+// Maps any fetch/API/Supabase error to a clean user-facing message
+// ─────────────────────────────────────────────
+function getFriendlyError(err: any, fallback = 'Something went wrong. Please try again.'): string {
+  const msg: string = err?.message || ''
+
+  // Pass through messages that are already clean (set by our own API routes)
+  // These are short, don't contain URLs, brackets, or technical jargon
+  const looksClean = msg.length > 0 && msg.length < 120 && !/[{[\]<>]/.test(msg) && !/https?:\/\//.test(msg)
+  if (looksClean) return msg
+
+  // Catch-all for anything that slipped through as raw
+  return fallback
+}
+
+// Safe JSON parser — handles cases where the server returns non-JSON (e.g. a Next.js error page)
+async function safeJson(response: Response): Promise<any> {
+  try {
+    return await response.json()
+  } catch {
+    return {}
+  }
+}
+
 export default function AddApplicationForm({ userId }: AddApplicationFormProps) {
   const router = useRouter()
   const supabase = createClient()
@@ -81,9 +106,12 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
         body: JSON.stringify({ url: jobUrl }),
       })
 
-      if (!response.ok) throw new Error('Failed to fetch job details')
+      const data = await safeJson(response)
 
-      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch job details')
+      }
+
       setJobTitle(data.jobTitle || '')
       setCompanyName(data.companyName || '')
       setLocation(data.location || '')
@@ -92,9 +120,11 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
       setStep('details')
       toast.success('Job details extracted!', { style: { color: '#16a34a' } })
     } catch (err: any) {
-      toast.error(err.message || 'Failed to extract job details. Please enter manually.', {
-        style: { color: '#dc2626' },
-      })
+      toast.error(
+        getFriendlyError(err, 'Failed to extract job details. Please enter manually.'),
+        { style: { color: '#dc2626' } }
+      )
+      // Still proceed to details so user can enter manually
       setStep('details')
     } finally {
       setLoading(false)
@@ -117,7 +147,7 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
         body: JSON.stringify({ jobTitle, companyName, location, jobDescription }),
       })
 
-      const data = await response.json()
+      const data = await safeJson(response)
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to analyze match')
@@ -126,7 +156,10 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
       setMatchAnalysis(data)
       setStep('analysis')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to analyze match', { style: { color: '#dc2626' } })
+      toast.error(
+        getFriendlyError(err, 'Failed to analyze match. Please try again.'),
+        { style: { color: '#dc2626' } }
+      )
     } finally {
       setAnalyzing(false)
     }
@@ -138,7 +171,7 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
   }
 
   // ─── Research Step ─────────────────────────────────────────────────────────
-  // Don't call the API here at all — research fires after save with the real applicationId
+  // Research fires after save with the real applicationId — not here
   const handleResearchComplete = () => {
     setCompanyResearch({ queued: true })
     setStep('save')
@@ -174,7 +207,10 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        // Supabase errors can be technical — normalize them
+        throw new Error('Failed to save application. Please try again.')
+      }
 
       // 2. Navigate immediately — don't wait for anything else
       toast.success('Application saved!', { style: { color: '#16a34a' } })
@@ -182,9 +218,8 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
       router.refresh()
 
       // 3. Fire company research in background AFTER navigation
-      //    Show a persistent toast so user knows it's happening
       const researchToastId = toast.loading(`Researching ${companyName} in background...`, {
-        duration: Infinity, // stays until we dismiss it
+        duration: Infinity,
       })
 
       const getOrigin = () => {
@@ -201,7 +236,7 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
         }),
       })
         .then(async (res) => {
-          const data = await res.json().catch(() => ({}))
+          const data = await safeJson(res)
           toast.dismiss(researchToastId)
           if (data.success) {
             toast.success(`${companyName} research complete!`, {
@@ -209,7 +244,7 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
               style: { color: '#16a34a' },
             })
           } else {
-            // Non-fatal — research failed silently, user can still use the app
+            // Non-fatal — log only, don't surface to user
             console.warn('Research completed with issues:', data.error)
           }
         })
@@ -229,7 +264,10 @@ export default function AddApplicationForm({ userId }: AddApplicationFormProps) 
 
     } catch (err: any) {
       console.error('Save error:', err)
-      toast.error(err.message || 'Failed to save application', { style: { color: '#dc2626' } })
+      toast.error(
+        getFriendlyError(err, 'Failed to save application. Please try again.'),
+        { style: { color: '#dc2626' } }
+      )
       setLoading(false)
     }
   }
