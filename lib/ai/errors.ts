@@ -17,7 +17,7 @@ export function getApiErrorMessage(error: any, context = 'process your request')
     msg.includes('Too Many Requests') ||
     msg.includes('RESOURCE_EXHAUSTED')
   ) {
-    return 'AI service is temporarily unavailable due to high demand. Please try again in a few minutes.'
+    return 'AI service is temporarily unavailable. Please try again later.'
   }
   if (msg.includes('401') || msg.includes('API key') || msg.includes('UNAUTHENTICATED')) {
     return 'AI service configuration error. Please contact support.'
