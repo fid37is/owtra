@@ -43,9 +43,10 @@ export default function ForgotPasswordStep({
       // localhost in dev and owtra.xyz in prod.
       // Supabase uses this to build {{ .ConfirmationURL }} in the email template.
       // The callback handles it via verifyOtp (token_hash flow) — no PKCE cookie needed.
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      })
+      // redirectTo is omitted — Supabase uses {{ .SiteURL }} from the dashboard
+      // to build the link. SiteURL = localhost in dev, owtra.xyz in prod.
+      // This avoids Supabase rejecting localhost as an invalid redirectTo domain.
+      const { error } = await supabase.auth.resetPasswordForEmail(email)
 
       if (error) throw error
 
