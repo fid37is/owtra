@@ -39,8 +39,12 @@ export default function ForgotPasswordStep({
     onLoading(true)
 
     try {
+      // redirectTo uses window.location.origin so it's automatically
+      // localhost in dev and owtra.xyz in prod.
+      // Supabase uses this to build {{ .ConfirmationURL }} in the email template.
+      // The callback handles it via verifyOtp (token_hash flow) — no PKCE cookie needed.
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       })
 
       if (error) throw error
