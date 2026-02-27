@@ -39,13 +39,15 @@ export default function ForgotPasswordStep({
     onLoading(true)
 
     try {
-      // Supabase will automatically send password reset email using your custom template
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
       })
 
       if (error) throw error
 
+      // ✅ Clear loading before transitioning — otherwise the state carries
+      // over to the sent screen and "Try again" comes back frozen.
+      onLoading(false)
       onSuccess()
     } catch (err: any) {
       console.error('Forgot password error:', err)

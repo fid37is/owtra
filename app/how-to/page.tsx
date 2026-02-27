@@ -15,7 +15,7 @@ const tutorials = [
         category: 'Getting started',
         title: 'Log your first application',
         summary: 'Add a job application manually or paste a job listing URL to auto-fill the details.',
-        youtubeUrl: 'https://www.youtube.com/watch?v=REPLACE_ME_1', // ← paste your URL here
+        youtubeUrl: 'https://youtu.be/3h4orXkRVCU',
         steps: [
             {
                 title: 'Go to Applications',
@@ -400,7 +400,7 @@ export default function HowToPage() {
         <PageLayout>
             {/* Header */}
             <div className="border-b border-border">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
                     <p className="text-xs font-semibold tracking-widest text-primary uppercase mb-5">How To</p>
                     <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-5">
                         Short guides to get the most
@@ -414,7 +414,7 @@ export default function HowToPage() {
             </div>
 
             {/* Tutorials */}
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
                 <div className="space-y-3">
                     {tutorials.map((tutorial, i) => (
                         <div key={tutorial.id} id={`tutorial-${i}`} className="scroll-mt-6">

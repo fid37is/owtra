@@ -42,12 +42,16 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error) {
-      console.error('Auth callback error:', error)
+      console.error('Auth callback error:', error.message, '| type:', type, '| code:', code?.slice(0, 10))
 
-      // Supabase may have verified the user before the server crashed,
-      // consuming the token but failing to complete the redirect.
-      // If the user is already confirmed in the DB, continue normally
-      // instead of showing a confusing auth_failed error.
+      // For recovery flow, a failed exchange means the link is expired or
+      // already used — send back to request a new one.
+      if (type === 'recovery') {
+        return NextResponse.redirect(`${origin}/?error=reset_link_expired`)
+      }
+
+      // For other flows: Supabase may have verified the user before the server
+      // crashed, consuming the token. If already confirmed, fall through.
       const { data: { user: existingUser } } = await supabase.auth.getUser()
       if (!existingUser?.email_confirmed_at) {
         return NextResponse.redirect(`${origin}/?error=auth_failed`)
@@ -59,17 +63,19 @@ export async function GET(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     
     if (user) {
+      // ── Password recovery — redirect to homepage with ?type=recovery.
+      // The homepage skips the dashboard redirect when this param is present,
+      // and AuthSection switches to the reset-password step.
+      if (type === 'recovery') {
+        return NextResponse.redirect(`${origin}/?type=recovery`)
+      }
+
       // Check if profile exists and account status
       const { data: profile } = await supabase
         .from('profiles')
         .select('onboarding_completed, created_at, account_status, deletion_scheduled_at')
         .eq('id', user.id)
         .single()
-
-      // Handle password recovery flow - skip onboarding check
-      if (type === 'recovery') {
-        return NextResponse.redirect(`${origin}/?type=recovery`)
-      }
 
       // Handle reactivation flow
       if (type === 'reactivate' && (profile?.account_status === 'hibernated' || profile?.account_status === 'deleted')) {
