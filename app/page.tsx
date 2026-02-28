@@ -11,10 +11,9 @@ export default async function HomePage({
   const supabase = await createClient()
   const params = await searchParams
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
+  // Only skip redirect for password recovery flow
   if (user && params.type !== 'recovery') {
     redirect('/dashboard')
   }

@@ -66,7 +66,6 @@ export default async function proxy(request: NextRequest) {
         )
         return NextResponse.redirect(redirectUrl)
       }
-      // ✅ FIX: Stop here — don't fall through to the isAuthRoute block
       return response
     }
 
@@ -82,6 +81,11 @@ export default async function proxy(request: NextRequest) {
     if (path.startsWith('/onboarding') && profile?.onboarding_completed) {
       const redirectUrl = new URL('/dashboard', request.url)
       return NextResponse.redirect(redirectUrl)
+    }
+
+    // Never redirect away from the password recovery flow
+    if (request.nextUrl.searchParams.get('type') === 'recovery') {
+      return response
     }
 
     if (isAuthRoute && profile?.onboarding_completed) {

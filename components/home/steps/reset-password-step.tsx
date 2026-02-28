@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface ResetPasswordStepProps {
   password: string
@@ -34,14 +35,17 @@ export default function ResetPasswordStep({
 }: ResetPasswordStepProps) {
   const handleResetPasswordSubmit = async () => {
     if (!password || !confirmPassword) {
-      return
-    }
-
-    if (password !== confirmPassword) {
+      toast.error('Please fill in both password fields')
       return
     }
 
     if (password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match')
       return
     }
 
@@ -51,15 +55,23 @@ export default function ResetPasswordStep({
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
 
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      })
+      // Verify session exists before attempting update
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        toast.error('Your reset session has expired. Please request a new reset link.')
+        onLoading(false)
+        return
+      }
+
+      const { error } = await supabase.auth.updateUser({ password })
 
       if (error) throw error
 
+      toast.success('Password reset successfully! You can now sign in.')
       onSuccess()
     } catch (err: any) {
-      console.error(err)
+      console.error('Reset password error:', err)
+      toast.error(err.message || 'Failed to reset password. Please try again.')
     } finally {
       onLoading(false)
     }
@@ -85,9 +97,7 @@ export default function ResetPasswordStep({
             disabled={loading}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                const confirmInput = document.getElementById(
-                  'confirm-password'
-                ) as HTMLInputElement
+                const confirmInput = document.getElementById('confirm-password') as HTMLInputElement
                 if (confirmInput) confirmInput.focus()
               }
             }}
