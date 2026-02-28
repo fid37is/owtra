@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     siteName: 'Owtra',
     images: [
       {
-        url: '/og/og-image.png?v=2',
+        url: `${baseUrl}/og/og-image.png?v=2`,
         width: 1200,
         height: 630,
         alt: 'Owtra Job Application Tracker',
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     title: 'Owtra – Smarter Tracking. Sharper Insights.',
     description:
       'Track applications. Analyze performance. Get AI-powered company matching.',
-    images: ['/og/og-image.png'],
+    images: [`${baseUrl}/og/og-image.png?v=2`],
   },
 }
 
