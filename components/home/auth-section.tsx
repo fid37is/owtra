@@ -22,7 +22,13 @@ export default function AuthSection() {
   const searchParams = useSearchParams()
   const supabase = createClient()
 
-  const [step, setStep] = useState<AuthStep>('initial')
+  const [step, setStep] = useState<AuthStep>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('type') === 'recovery') return 'reset-password'
+    }
+    return 'initial'
+  })
   const [email, setEmail] = useState('')
   const [userName, setUserName] = useState('')
   const [password, setPassword] = useState('')
@@ -34,32 +40,34 @@ export default function AuthSection() {
   const [intentUpgrade, setIntentUpgrade] = useState(false)
   const [toastShown, setToastShown] = useState(false)
 
-  // Check for subscription intent and errors
+  // Check for recovery, upgrade intent, and errors
   useEffect(() => {
     const upgrade = searchParams.get('upgrade')
     const error = searchParams.get('error')
-    const type = searchParams.get('type')
+    // Remove the 'type === recovery' block — it's handled in useState init now
 
     if (upgrade === 'true') setIntentUpgrade(true)
-    if (type === 'recovery') setStep('reset-password')
 
     if (error) {
       const errorMessages: Record<string, string> = {
         'auth_failed': 'Authentication failed. Please try again.',
         'verification_failed': 'Email verification failed. Please try again.',
         'no_token': 'Invalid verification link.',
+        'reset_link_expired': 'Reset link has expired. Please request a new one.',
       }
       toast.error(errorMessages[error] || 'An error occurred')
     }
   }, [searchParams])
 
-  // Check if user is authenticated AND check onboarding status
+  // Check auth and route — but never redirect if on reset-password step
   useEffect(() => {
     const checkUserAndOnboarding = async () => {
+      // Never redirect away if user is resetting password
+      if (step === 'reset-password' || searchParams.get('type') === 'recovery') return
+
       const { data: { user } } = await supabase.auth.getUser()
 
-      if (user && step !== 'reset-password') {
-        // Fetch user's profile to check onboarding status
+      if (user) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('onboarding_completed, account_status')
@@ -67,8 +75,6 @@ export default function AuthSection() {
           .single<{ onboarding_completed: boolean | null; account_status: string | null }>()
 
         if (profileError) {
-          console.error('Error fetching profile:', profileError)
-          // If profile doesn't exist, they need onboarding
           if (intentUpgrade) {
             router.push('/onboarding?redirect=/subscription')
           } else {
@@ -77,36 +83,27 @@ export default function AuthSection() {
           return
         }
 
-        // Check if account is hibernated or deleted
         if (profile?.account_status === 'hibernated' || profile?.account_status === 'deleted') {
-          // Let them stay on auth page or redirect to reactivate
           router.push(`/auth/reactivate?email=${encodeURIComponent(user.email || '')}&status=${profile.account_status}`)
           return
         }
 
-        // Check if they've completed onboarding
         if (!profile?.onboarding_completed) {
-          // User needs to complete onboarding - show success toast if not shown yet
           if (!toastShown) {
-            // Check auth provider to show appropriate message
             const provider = user.app_metadata?.provider
-
             if (provider === 'google') {
               toast.success('Signed in with Google successfully!')
             } else if (user.email_confirmed_at) {
-              // Email was verified (either just now or previously)
               toast.success('Email verified successfully!')
             }
             setToastShown(true)
           }
-
           if (intentUpgrade) {
             router.push('/onboarding?redirect=/subscription')
           } else {
             router.push('/onboarding')
           }
         } else {
-          // Onboarding completed - redirect to dashboard or subscription
           if (intentUpgrade) {
             router.push('/subscription')
           } else {
@@ -162,7 +159,7 @@ export default function AuthSection() {
 
             <div className="relative flex items-center justify-center">
 
-              {step !== 'initial' && step !== 'verify' && step !== 'forgot-password-sent' && (
+              {step !== 'initial' && step !== 'verify' && step !== 'forgot-password-sent' && step !== 'reset-password' && (
                 <button
                   onClick={goBack}
                   className="
@@ -206,7 +203,6 @@ export default function AuthSection() {
           {/* Content */}
           <div className="space-y-5">
 
-            {/* Initial Step */}
             {step === 'initial' && (
               <>
                 <GoogleAuthButton
@@ -214,39 +210,22 @@ export default function AuthSection() {
                   onLoading={setGoogleLoading}
                   intentUpgrade={intentUpgrade}
                 />
-
-                {/* Divider */}
                 <div className="relative flex items-center">
                   <div className="flex-grow border-t border-border"></div>
-
-                  <span className="
-                  mx-4
-                  text-sm
-                  text-muted-foreground
-                  bg-card
-                ">
-                    or
-                  </span>
-
+                  <span className="mx-4 text-sm text-muted-foreground bg-card">or</span>
                   <div className="flex-grow border-t border-border"></div>
                 </div>
-
                 <EmailStep
                   email={email}
                   onEmailChange={setEmail}
                   loading={emailLoading}
                   onLoading={setEmailLoading}
                   onNewUser={() => setStep('create-password')}
-                  onExistingUser={(name) => {
-                    setUserName(name)
-                    setStep('password')
-                  }}
+                  onExistingUser={(name) => { setUserName(name); setStep('password') }}
                 />
               </>
             )}
 
-
-            {/* Email Step */}
             {step === 'email' && (
               <EmailStep
                 email={email}
@@ -254,15 +233,10 @@ export default function AuthSection() {
                 loading={emailLoading}
                 onLoading={setEmailLoading}
                 onNewUser={() => setStep('create-password')}
-                onExistingUser={(name) => {
-                  setUserName(name)
-                  setStep('password')
-                }}
+                onExistingUser={(name) => { setUserName(name); setStep('password') }}
               />
             )}
 
-
-            {/* Create Password */}
             {step === 'create-password' && (
               <CreatePasswordStep
                 email={email}
@@ -281,8 +255,6 @@ export default function AuthSection() {
               />
             )}
 
-
-            {/* Password */}
             {step === 'password' && (
               <PasswordStep
                 email={email}
@@ -292,30 +264,20 @@ export default function AuthSection() {
                 userName={userName}
                 onPasswordChange={setPassword}
                 onShowPasswordChange={setShowPassword}
-                onSuccess={() => {
-                  toast.success('Welcome back!')
-                  router.refresh()
-                }}
+                onSuccess={() => { toast.success('Welcome back!'); router.refresh() }}
                 onForgotPassword={() => setStep('forgot-password')}
                 onLoading={setEmailLoading}
               />
             )}
 
-
-            {/* Verify */}
             {step === 'verify' && (
               <VerifyStep
                 email={email}
                 intentUpgrade={intentUpgrade}
-                onChangeEmail={() => {
-                  setStep('initial')
-                  setEmail('')
-                }}
+                onChangeEmail={() => { setStep('initial'); setEmail('') }}
               />
             )}
 
-
-            {/* Forgot */}
             {step === 'forgot-password' && (
               <ForgotPasswordStep
                 email={email}
@@ -326,20 +288,13 @@ export default function AuthSection() {
               />
             )}
 
-
-            {/* Forgot Sent */}
             {step === 'forgot-password-sent' && (
               <ForgotPasswordSentStep
                 email={email}
-                onRetry={() => {
-                  setStep('forgot-password')
-                  setEmail('')
-                }}
+                onRetry={() => { setStep('forgot-password'); setEmail('') }}
               />
             )}
 
-
-            {/* Reset */}
             {step === 'reset-password' && (
               <ResetPasswordStep
                 password={password}
@@ -353,7 +308,8 @@ export default function AuthSection() {
                 onShowConfirmPasswordChange={setShowConfirmPassword}
                 onSuccess={() => {
                   toast.success('Password reset successfully!')
-                  router.refresh()
+                  setStep('initial')
+                  router.push('/')
                 }}
                 onLoading={setEmailLoading}
               />
@@ -361,36 +317,17 @@ export default function AuthSection() {
 
           </div>
 
-
-          {/* Terms */}
           {(step === 'initial' ||
             step === 'email' ||
             step === 'create-password' ||
             step === 'password' ||
             step === 'forgot-password') && (
-
-              <p className="
-            text-xs
-            text-muted-foreground
-            text-center
-            mt-8
-          ">
+              <p className="text-xs text-muted-foreground text-center mt-8">
                 By continuing, you agree to our{" "}
-                <a
-                  href="/terms"
-                  className="text-primary font-medium hover:underline"
-                >
-                  Terms
-                </a>
+                <a href="/terms" className="text-primary font-medium hover:underline">Terms</a>
                 {" "}and{" "}
-                <a
-                  href="/privacy"
-                  className="text-primary font-medium hover:underline"
-                >
-                  Privacy Policy
-                </a>
+                <a href="/privacy" className="text-primary font-medium hover:underline">Privacy Policy</a>
               </p>
-
             )}
 
         </div>
@@ -398,5 +335,4 @@ export default function AuthSection() {
       </div>
     </div>
   )
-
 }

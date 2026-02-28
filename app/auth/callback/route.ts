@@ -18,9 +18,7 @@ export async function GET(request: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
+        get(name: string) { return cookieStore.get(name)?.value },
         set(name: string, value: string, options: any) {
           try { cookieStore.set({ name, value, ...options }) } catch {}
         },
@@ -31,38 +29,31 @@ export async function GET(request: Request) {
     }
   )
 
-  // ── Path A: token_hash flow (password recovery, email confirmation via OTP)
+  // ── token_hash flow (reset password via {{ .SiteURL }}/auth/callback?token_hash=...&type=recovery)
   if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as any })
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type as any,
+    })
 
     if (error) {
-      console.error('OTP verify error:', error.message, '| type:', type)
-      if (type === 'recovery') {
-        return NextResponse.redirect(`${origin}/?error=reset_link_expired`)
-      }
+      console.error('verifyOtp error:', error.message)
       return NextResponse.redirect(`${origin}/?error=auth_failed`)
     }
 
-    // Recovery — session is now live, send to homepage reset step
     if (type === 'recovery') {
       return NextResponse.redirect(`${origin}/?type=recovery`)
     }
 
-    // Email confirmation — fall through to post-auth logic below
+    // For other token_hash types (signup, etc) fall through to post-auth routing
   }
 
-  // ── Path B: PKCE code flow (Google OAuth, magic link, email signup confirmation)
+  // ── PKCE code flow (Google OAuth, magic link, email signup)
   else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error) {
-      console.error('Code exchange error:', error.message, '| type:', type)
-
-      if (type === 'recovery') {
-        return NextResponse.redirect(`${origin}/?error=reset_link_expired`)
-      }
-
-      // May have already confirmed before crash — check and fall through if so
+      console.error('exchangeCodeForSession error:', error.message)
       const { data: { user: existingUser } } = await supabase.auth.getUser()
       if (!existingUser?.email_confirmed_at) {
         return NextResponse.redirect(`${origin}/?error=auth_failed`)
@@ -70,7 +61,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // ── No recognised params
   else {
     return NextResponse.redirect(`${origin}/?error=no_token`)
   }
@@ -82,7 +72,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/?error=auth_failed`)
   }
 
-  // Password recovery already handled above — this catches the code flow edge case
   if (type === 'recovery') {
     return NextResponse.redirect(`${origin}/?type=recovery`)
   }
@@ -93,7 +82,6 @@ export async function GET(request: Request) {
     .eq('id', user.id)
     .single()
 
-  // Reactivation flow
   if (type === 'reactivate' && (profile?.account_status === 'hibernated' || profile?.account_status === 'deleted')) {
     if (profile?.account_status === 'deleted') {
       const deletionDate = new Date(profile.deletion_scheduled_at)
@@ -108,7 +96,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/dashboard?reactivated=true`)
   }
 
-  // Hibernated / deleted — block login
   if (profile?.account_status === 'hibernated' || profile?.account_status === 'deleted') {
     return NextResponse.redirect(
       `${origin}/auth/reactivate?email=${encodeURIComponent(user.email || '')}&status=${profile.account_status}`
@@ -119,9 +106,10 @@ export async function GET(request: Request) {
   const needsOnboarding = !profile || !profile.onboarding_completed
 
   if (needsOnboarding) {
-    return NextResponse.redirect(
-      `${origin}/onboarding${hasSubscriptionIntent ? '?redirect=/subscription&verified=true' : '?verified=true'}`
-    )
+    if (hasSubscriptionIntent) {
+      return NextResponse.redirect(`${origin}/onboarding?redirect=/subscription&verified=true`)
+    }
+    return NextResponse.redirect(`${origin}/onboarding?verified=true`)
   }
 
   if (hasSubscriptionIntent) {
